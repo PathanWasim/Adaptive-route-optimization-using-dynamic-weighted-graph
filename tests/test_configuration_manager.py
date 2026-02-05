@@ -20,12 +20,16 @@ class TestConfigurationManager:
         """Create a temporary directory for configuration files."""
         temp_dir = tempfile.mkdtemp()
         yield temp_dir
+        # Cleanup happens after tests complete
         shutil.rmtree(temp_dir)
     
     @pytest.fixture
     def config_manager(self, temp_config_dir):
         """Create a ConfigurationManager instance with temporary directory."""
-        return ConfigurationManager(temp_config_dir)
+        manager = ConfigurationManager(temp_config_dir)
+        yield manager
+        # Explicitly close to release file handles
+        manager.close()
     
     @pytest.fixture
     def sample_graph(self):
