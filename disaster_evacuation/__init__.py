@@ -14,7 +14,8 @@ from . import pathfinding
 from . import controller
 from . import visualization
 from . import analysis
+from . import config
 
 __version__ = "1.0.0"
 __author__ = "DAA Course Project"
-__all__ = ['models', 'graph', 'disaster', 'pathfinding', 'controller', 'visualization', 'analysis']
+__all__ = ['models', 'graph', 'disaster', 'pathfinding', 'controller', 'visualization', 'analysis', 'config']
