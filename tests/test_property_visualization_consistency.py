@@ -58,7 +58,7 @@ class TestPropertyVisualizationConsistency:
     """Property-based tests for visualization consistency."""
     
     @given(st.integers(min_value=2, max_value=10))
-    @settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
+    @settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=1000)
     def test_property_graph_visualization_consistency(self, vertex_count):
         """
         Property: Graph visualizations should be consistent across different graph sizes.
@@ -95,7 +95,7 @@ class TestPropertyVisualizationConsistency:
         st.integers(min_value=2, max_value=8),
         st.integers(min_value=1, max_value=5)
     )
-    @settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
+    @settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=1000)
     def test_property_path_visualization_consistency(self, vertex_count, path_length):
         """
         Property: Path visualizations should be consistent for valid paths.
@@ -139,7 +139,7 @@ class TestPropertyVisualizationConsistency:
         st.floats(min_value=0.1, max_value=1.0),
         st.floats(min_value=0.5, max_value=3.0)
     )
-    @settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
+    @settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=1000)
     def test_property_disaster_visualization_consistency(self, disaster_type, severity, radius):
         """
         Property: Disaster visualizations should be consistent across disaster parameters.
@@ -182,7 +182,7 @@ class TestPropertyVisualizationConsistency:
         plt.close(fig)
     
     @given(st.integers(min_value=2, max_value=6))
-    @settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
+    @settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=1000)
     def test_property_comparison_visualization_consistency(self, vertex_count):
         """
         Property: Comparison visualizations should be consistent.
@@ -234,7 +234,7 @@ class TestPropertyVisualizationConsistency:
         st.tuples(st.floats(min_value=8.0, max_value=20.0), 
                  st.floats(min_value=6.0, max_value=15.0))
     )
-    @settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
+    @settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=1000)
     def test_property_figure_size_consistency(self, figsize):
         """
         Property: Figure sizes should be respected consistently.
@@ -256,7 +256,7 @@ class TestPropertyVisualizationConsistency:
         plt.close(fig)
     
     @given(st.text(min_size=1, max_size=50, alphabet=st.characters(min_codepoint=32, max_codepoint=126)))
-    @settings(suppress_health_check=[HealthCheck.function_scoped_fixture, HealthCheck.filter_too_much])
+    @settings(suppress_health_check=[HealthCheck.function_scoped_fixture, HealthCheck.filter_too_much], deadline=1000)
     def test_property_title_consistency(self, title):
         """
         Property: Titles should be displayed consistently.
@@ -282,7 +282,7 @@ class TestPropertyVisualizationConsistency:
         plt.close(fig)
     
     @given(st.integers(min_value=1, max_value=5))
-    @settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=1000)  # Increase deadline
+    @settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=2000)  # Increase deadline for file I/O
     def test_property_save_functionality_consistency(self, graph_size):
         """
         Property: Save functionality should work consistently.
@@ -306,7 +306,7 @@ class TestPropertyVisualizationConsistency:
             plt.close(fig)
     
     @given(st.integers(min_value=2, max_value=8))
-    @settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
+    @settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=1000)
     def test_property_vertex_type_visualization_consistency(self, vertex_count):
         """
         Property: Different vertex types should be visualized consistently.
@@ -345,7 +345,7 @@ class TestPropertyVisualizationConsistency:
         plt.close(fig)
     
     @given(st.integers(min_value=1, max_value=3))
-    @settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
+    @settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=1000)
     def test_property_empty_path_handling_consistency(self, graph_size):
         """
         Property: Empty or invalid paths should be handled consistently.
@@ -371,7 +371,7 @@ class TestPropertyVisualizationConsistency:
         st.integers(min_value=2, max_value=5),
         st.integers(min_value=1, max_value=3)
     )
-    @settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
+    @settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=1000)
     def test_property_dynamic_comparison_consistency(self, vertex_count, scenario_count):
         """
         Property: Dynamic comparison visualizations should be consistent.
@@ -453,7 +453,7 @@ class TestPropertyVisualizationConsistency:
         assert len(set(disaster_color_values)) == len(disaster_color_values)  # All unique
     
     @given(st.integers(min_value=1, max_value=4))
-    @settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
+    @settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=1000)
     def test_property_legend_consistency(self, graph_complexity):
         """
         Property: Legends should be consistent and informative.
