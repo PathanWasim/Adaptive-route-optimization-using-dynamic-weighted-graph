@@ -7,6 +7,7 @@ including graph management, disaster modeling, pathfinding, visualization, and a
 
 import argparse
 import sys
+import logging
 from typing import Optional, Tuple
 from .graph import GraphManager
 from .disaster import DisasterModel
@@ -17,6 +18,17 @@ from .controller import RouteController
 from .config import ConfigurationManager
 from .models import DisasterType, VertexType, DisasterEvent
 
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('disaster_evacuation.log'),
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+logger = logging.getLogger(__name__)
 
 class DisasterEvacuationApp:
     """
