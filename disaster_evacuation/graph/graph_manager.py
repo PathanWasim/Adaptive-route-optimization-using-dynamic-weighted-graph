@@ -24,6 +24,7 @@ class GraphManager:
         self._adjacency_list: Dict[str, List[Edge]] = {}
         self._edge_weights: Dict[Tuple[str, str], float] = {}
         self._edges: Dict[Tuple[str, str], Edge] = {}
+        self._node_coordinates: Dict[str, Tuple[float, float]] = {}
     
     def add_vertex(self, vertex_id: str, vertex_type: VertexType, 
                    coordinates: Tuple[float, float], capacity: Optional[int] = None) -> None:
@@ -238,6 +239,42 @@ class GraphManager:
         self._adjacency_list.clear()
         self._edge_weights.clear()
         self._edges.clear()
+        self._node_coordinates.clear()
+    
+    def set_node_coordinates(self, vertex_id: str, lat: float, lon: float) -> None:
+        """
+        Store geographic coordinates for a node.
+        
+        Args:
+            vertex_id: Vertex ID
+            lat: Latitude
+            lon: Longitude
+            
+        Raises:
+            ValueError: If vertex doesn't exist
+        """
+        if vertex_id not in self._vertices:
+            raise ValueError(f"Vertex '{vertex_id}' does not exist")
+        
+        self._node_coordinates[vertex_id] = (lat, lon)
+    
+    def get_node_coordinates(self, vertex_id: str) -> Optional[Tuple[float, float]]:
+        """
+        Retrieve geographic coordinates for a node.
+        
+        Args:
+            vertex_id: Vertex ID
+            
+        Returns:
+            Tuple of (latitude, longitude) or None if not set
+            
+        Raises:
+            ValueError: If vertex doesn't exist
+        """
+        if vertex_id not in self._vertices:
+            raise ValueError(f"Vertex '{vertex_id}' does not exist")
+        
+        return self._node_coordinates.get(vertex_id)
     
     def get_graph_info(self) -> Dict[str, any]:
         """
