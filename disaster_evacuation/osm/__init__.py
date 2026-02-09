@@ -6,6 +6,5 @@ real OpenStreetMap data while maintaining the core Dijkstra algorithm unchanged.
 """
 
 from .osm_extractor import OSMExtractor
-from .graph_converter import GraphConverter
 
-__all__ = ['OSMExtractor', 'GraphConverter']
+__all__ = ['OSMExtractor']
