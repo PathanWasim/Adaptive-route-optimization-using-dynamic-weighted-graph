@@ -63,10 +63,9 @@ class OSMExtractor:
             # Validate the extracted network
             self._validate_network(G, place_name)
             
-            # Project to UTM for accurate distance calculations
-            G_proj = ox.project_graph(G)
-            
-            return G_proj
+            # Return unprojected graph with lat/lon coordinates
+            # (Projection to UTM is only needed for area calculation, not for routing)
+            return G
             
         except Exception as e:
             if "Could not geocode" in str(e) or "not found" in str(e).lower():
@@ -101,10 +100,8 @@ class OSMExtractor:
             # Validate the extracted network
             self._validate_network(G, f"bbox({north},{south},{east},{west})")
             
-            # Project to UTM for accurate distance calculations
-            G_proj = ox.project_graph(G)
-            
-            return G_proj
+            # Return unprojected graph with lat/lon coordinates
+            return G
             
         except Exception as e:
             if "Could not geocode" in str(e):

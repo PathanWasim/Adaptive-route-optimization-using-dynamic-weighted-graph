@@ -34,22 +34,26 @@ class MapVisualizer:
         self.graph_manager = graph_manager
         self.coordinate_mapping = coordinate_mapping
     
-    def _plot_edge(self, ax, u: int, v: int, color: str = 'gray', 
+    def _plot_edge(self, ax, u, v, color: str = 'gray', 
                   linewidth: float = 0.5, linestyle: str = '-', alpha: float = 1.0) -> None:
         """
         Plot a single edge on the map.
         
         Args:
             ax: Matplotlib axis
-            u, v: Node IDs (internal integer IDs)
+            u, v: Node IDs (can be string or integer)
             color: Edge color
             linewidth: Line width
             linestyle: Line style ('-', '--', ':', etc.)
             alpha: Transparency (0.0 to 1.0)
         """
+        # Convert to integers for coordinate lookup
+        u_int = int(u) if isinstance(u, str) else u
+        v_int = int(v) if isinstance(v, str) else v
+        
         # Get coordinates
-        lat1, lon1 = self.coordinate_mapping[u]
-        lat2, lon2 = self.coordinate_mapping[v]
+        lat1, lon1 = self.coordinate_mapping[u_int]
+        lat2, lon2 = self.coordinate_mapping[v_int]
         
         # Plot edge (matplotlib expects x, y = lon, lat)
         ax.plot([lon1, lon2], [lat1, lat2], 
@@ -135,10 +139,14 @@ class MapVisualizer:
             u = path[i]
             v = path[i + 1]
             
+            # Convert string IDs to integers for coordinate lookup
+            u_int = int(u) if isinstance(u, str) else u
+            v_int = int(v) if isinstance(v, str) else v
+            
             # Only add label to first edge
             if i == 0 and label:
-                lat1, lon1 = self.coordinate_mapping[u]
-                lat2, lon2 = self.coordinate_mapping[v]
+                lat1, lon1 = self.coordinate_mapping[u_int]
+                lat2, lon2 = self.coordinate_mapping[v_int]
                 ax.plot([lon1, lon2], [lat1, lat2], 
                        color=color, linewidth=linewidth, linestyle=linestyle, 
                        label=label, alpha=0.9)

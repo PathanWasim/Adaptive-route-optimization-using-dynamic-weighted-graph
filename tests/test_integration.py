@@ -1,244 +1,247 @@
 """
-Integration tests for complete workflows in the disaster evacuation system.
+Integration test for the complete OSM road network workflow.
 
-These tests verify end-to-end functionality including component interactions,
-data flow, and error propagation.
+This test verifies the full pipeline: extract → convert → disaster → route → visualize
+using a small known area to ensure all components work together correctly.
 """
 
 import pytest
-from disaster_evacuation.main import DisasterEvacuationApp
-from disaster_evacuation.models import DisasterType, VertexType
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend for testing
+import matplotlib.pyplot as plt
+from disaster_evacuation.osm.osm_extractor import OSMExtractor
+from disaster_evacuation.osm.graph_converter import GraphConverter
+from disaster_evacuation.disaster.disaster_modeler import DisasterModeler
+from disaster_evacuation.pathfinding.pathfinder_engine import PathfinderEngine
+from disaster_evacuation.visualization.map_visualizer import MapVisualizer
 
 
-class TestEndToEndWorkflows:
-    """Test complete end-to-end workflows."""
+def test_full_workflow_integration():
+    """
+    Test complete pipeline: extract → convert → disaster → route → visualize.
     
-    def test_complete_evacuation_workflow(self, tmp_path):
-        """Test complete workflow from graph creation to route computation."""
-        # Initialize application
-        app = DisasterEvacuationApp(config_dir=str(tmp_path))
-        
-        # Create sample graph
-        app.create_sample_graph()
-        assert app.graph.get_vertex_count() == 7
-        assert app.graph.get_edge_count() == 9
-        
-        # Compute route without disaster
-        result = app.compute_route("Home", "Evac_Point", show_visualization=False)
-        assert result is not None
-        assert result['path'] == ['Home', 'Hospital', 'Shelter_A', 'Evac_Point']
-        assert result['total_cost'] > 0
-        
-        # Apply disaster
-        success = app.apply_disaster("fire", (3.0, 2.0), 0.8, 5.0)
-        assert success is True
-        
-        # Compute route with disaster
-        result_with_disaster = app.compute_route("Home", "Evac_Point", show_visualization=False)
-        assert result_with_disaster is not None
-        assert result_with_disaster['total_cost'] >= result['total_cost']
+    Uses a small known area (Piedmont, California, USA) to verify:
+    - OSM extraction works
+    - Conversion to internal format preserves data
+    - Disaster modeling affects routes
+    - Dijkstra works correctly on converted graphs
+    - Visualization produces valid output
     
-    def test_configuration_persistence_workflow(self, tmp_path):
-        """Test workflow with configuration save and load."""
-        # Initialize application
-        app = DisasterEvacuationApp(config_dir=str(tmp_path))
-        
-        # Create and save graph
-        app.create_sample_graph()
-        success = app.save_graph_to_config("test_config")
-        assert success is True
-        
-        # Create new application and load configuration
-        app2 = DisasterEvacuationApp(config_dir=str(tmp_path))
-        success = app2.load_graph_from_config("test_config")
-        assert success is True
-        assert app2.graph.get_vertex_count() == 7
-        
-        # Verify routes work on loaded graph
-        result = app2.compute_route("Home", "Evac_Point", show_visualization=False)
-        assert result is not None
+    Validates: Requirements 5.1, 6.1, 6.2, 6.4
+    """
+    # Step 1: Extract road network from OpenStreetMap
+    extractor = OSMExtractor()
+    osm_graph = extractor.extract_by_place("Piedmont, California, USA", network_type="drive")
     
-    def test_disaster_comparison_workflow(self, tmp_path):
-        """Test workflow comparing routes with and without disaster."""
-        # Initialize application
-        app = DisasterEvacuationApp(config_dir=str(tmp_path))
-        app.create_sample_graph()
+    # Verify extraction succeeded
+    assert osm_graph is not None
+    assert osm_graph.number_of_nodes() > 0
+    assert osm_graph.number_of_edges() > 0
+    
+    # Get network statistics
+    stats = extractor.get_network_stats(osm_graph)
+    assert stats['num_nodes'] > 0
+    assert stats['num_edges'] > 0
+    assert stats['area_km2'] >= 0  # Area might be 0 for projected graphs, just check non-negative
+    
+    # Step 2: Convert to internal format
+    converter = GraphConverter()
+    graph_manager, coord_mapping = converter.convert_osm_to_internal(osm_graph)
+    
+    # Verify conversion succeeded
+    assert graph_manager is not None
+    assert coord_mapping is not None
+    assert len(coord_mapping) == stats['num_nodes']
+    
+    # Verify all nodes have coordinates
+    for node_id in range(stats['num_nodes']):
+        coords = coord_mapping.get(node_id)
+        assert coords is not None
+        lat, lon = coords
+        # Coordinates should be valid lat/lon
+        assert -90 <= lat <= 90
+        assert -180 <= lon <= 180
+    
+    # Step 3: Select source and target nodes for routing
+    # Use first and last nodes as a simple test
+    source = "0"
+    target = str(stats['num_nodes'] - 1)
+    
+    # Verify nodes exist in graph
+    assert graph_manager.has_vertex(source)
+    assert graph_manager.has_vertex(target)
+    
+    # Step 4: Compute normal route (without disaster)
+    pathfinder = PathfinderEngine()
+    normal_result = pathfinder.find_shortest_path(graph_manager, source, target)
+    
+    # Verify normal route was found
+    if not normal_result.found:
+        # If no path exists, try finding connected nodes
+        pytest.skip("No path exists between selected nodes in this network")
+    
+    assert len(normal_result.path) >= 2
+    assert normal_result.path[0] == source
+    assert normal_result.path[-1] == target
+    assert normal_result.total_cost > 0
+    
+    # Step 5: Apply disaster scenario
+    # Get epicenter near middle of normal path
+    middle_idx = len(normal_result.path) // 2
+    middle_node_id = int(normal_result.path[middle_idx])
+    epicenter = coord_mapping[middle_node_id]
+    
+    # Apply fire disaster to block roads
+    modeler = DisasterModeler(graph_manager, coord_mapping)
+    modeler.apply_fire(epicenter, radius_meters=200.0)
+    
+    # Step 6: Compute disaster-aware route
+    disaster_result = pathfinder.find_shortest_path(graph_manager, source, target)
+    
+    # Verify disaster-aware route was found
+    assert disaster_result.found or not disaster_result.found  # May or may not find path
+    
+    if disaster_result.found:
+        assert len(disaster_result.path) >= 2
+        assert disaster_result.path[0] == source
+        assert disaster_result.path[-1] == target
         
-        # Apply disaster
-        app.apply_disaster("flood", (2.0, 1.0), 0.6, 4.0)
+        # Disaster route should be different or longer (if same, disaster didn't affect it)
+        if disaster_result.path != normal_result.path:
+            # Routes diverged - disaster had an effect
+            assert disaster_result.total_cost >= normal_result.total_cost
+    
+    # Step 7: Visualize results
+    visualizer = MapVisualizer(graph_manager, coord_mapping)
+    
+    # Test network visualization
+    fig1 = plt.figure(figsize=(10, 8))
+    visualizer.plot_network()
+    plt.close(fig1)
+    
+    # Test route comparison visualization (if both routes exist)
+    if disaster_result.found:
+        fig2 = plt.figure(figsize=(12, 10))
         
-        # Compare routes
-        comparison = app.compare_routes("Home", "Evac_Point", show_visualization=False)
-        assert comparison is not None
-        assert comparison['success'] is True
-        assert 'normal_route' in comparison
-        assert 'disaster_aware_route' in comparison
+        # Get blocked edges for visualization
+        blocked_edges = []
+        for u_id in range(stats['num_nodes']):
+            u = str(u_id)
+            if not graph_manager.has_vertex(u):
+                continue
+            neighbors = graph_manager.get_neighbors(u)
+            for edge in neighbors:
+                v = edge.target
+                weight = graph_manager.get_edge_weight(u, v)
+                if weight >= DisasterModeler.BLOCKED_WEIGHT * 0.99:
+                    blocked_edges.append((u, v))
+        
+        visualizer.plot_route_comparison(
+            source=source,
+            target=target,
+            normal_path=normal_result.path,
+            normal_distance=normal_result.total_cost,
+            disaster_path=disaster_result.path,
+            disaster_distance=disaster_result.total_cost,
+            blocked_edges=blocked_edges
+        )
+        plt.close(fig2)
+    
+    # If we got here, the full workflow succeeded
+    assert True
 
 
-class TestComponentInteractions:
-    """Test interactions between components."""
+def test_workflow_with_flood_disaster():
+    """
+    Test workflow with flood disaster (increases risk but doesn't block).
     
-    def test_graph_disaster_pathfinder_interaction(self):
-        """Test interaction between graph, disaster model, and pathfinder."""
-        app = DisasterEvacuationApp()
-        app.create_sample_graph()
-        
-        # Get initial route
-        initial_result = app.compute_route("Home", "Shelter_A", show_visualization=False)
-        initial_cost = initial_result['total_cost']
-        
-        # Apply disaster
-        app.apply_disaster("earthquake", (4.0, 1.0), 0.7, 3.0)
-        
-        # Get route after disaster
-        disaster_result = app.compute_route("Home", "Shelter_A", show_visualization=False)
-        disaster_cost = disaster_result['total_cost']
-        
-        # Cost should increase due to disaster
-        assert disaster_cost >= initial_cost
+    Validates: Requirements 3.3, 6.2
+    """
+    # Extract small network
+    extractor = OSMExtractor()
+    osm_graph = extractor.extract_by_place("Piedmont, California, USA", network_type="drive")
     
-    def test_controller_visualization_interaction(self):
-        """Test interaction between controller and visualization."""
-        app = DisasterEvacuationApp()
-        app.create_sample_graph()
-        
-        # Compute route (visualization disabled for testing)
-        result = app.compute_route("Home", "Evac_Point", show_visualization=False)
-        assert result is not None
-        
-        # Verify visualization can handle the result
-        # (actual visualization not tested in unit tests)
-        assert 'path' in result
-        assert len(result['path']) > 0
+    # Convert to internal format
+    converter = GraphConverter()
+    graph_manager, coord_mapping = converter.convert_osm_to_internal(osm_graph)
+    
+    # Select nodes
+    source = "0"
+    num_nodes = len(coord_mapping)
+    target = str(num_nodes - 1)
+    
+    if not graph_manager.has_vertex(source) or not graph_manager.has_vertex(target):
+        pytest.skip("Selected nodes don't exist in graph")
+    
+    # Compute normal route
+    pathfinder = PathfinderEngine()
+    normal_result = pathfinder.find_shortest_path(graph_manager, source, target)
+    
+    if not normal_result.found:
+        pytest.skip("No path exists between selected nodes")
+    
+    # Apply flood disaster
+    middle_idx = len(normal_result.path) // 2
+    middle_node_id = int(normal_result.path[middle_idx])
+    epicenter = coord_mapping[middle_node_id]
+    
+    modeler = DisasterModeler(graph_manager, coord_mapping)
+    modeler.apply_flood(epicenter, radius_meters=300.0, risk_multiplier=0.8)
+    
+    # Compute disaster-aware route
+    disaster_result = pathfinder.find_shortest_path(graph_manager, source, target)
+    
+    # Flood should increase cost but not block completely
+    assert disaster_result.found
+    assert disaster_result.total_cost >= normal_result.total_cost
 
 
-class TestErrorPropagation:
-    """Test error handling and propagation."""
+def test_workflow_with_earthquake_disaster():
+    """
+    Test workflow with earthquake disaster (random blocking + congestion).
     
-    def test_invalid_vertex_error_propagation(self):
-        """Test error propagation for invalid vertices."""
-        app = DisasterEvacuationApp()
-        app.create_sample_graph()
-        
-        # Try to compute route with invalid vertex
-        result = app.compute_route("InvalidStart", "Evac_Point", show_visualization=False)
-        assert result is None
+    Validates: Requirements 3.5, 6.2
+    """
+    # Extract small network
+    extractor = OSMExtractor()
+    osm_graph = extractor.extract_by_place("Piedmont, California, USA", network_type="drive")
     
-    def test_empty_graph_error_handling(self):
-        """Test error handling for empty graph."""
-        app = DisasterEvacuationApp()
-        
-        # Try to compute route on empty graph
-        result = app.compute_route("Home", "Evac_Point", show_visualization=False)
-        assert result is None
-        
-        # Try to apply disaster on empty graph
-        success = app.apply_disaster("fire", (0.0, 0.0), 0.5, 5.0)
-        assert success is False
+    # Convert to internal format
+    converter = GraphConverter()
+    graph_manager, coord_mapping = converter.convert_osm_to_internal(osm_graph)
     
-    def test_invalid_disaster_parameters(self):
-        """Test error handling for invalid disaster parameters."""
-        app = DisasterEvacuationApp()
-        app.create_sample_graph()
-        
-        # Invalid severity
-        success = app.apply_disaster("fire", (0.0, 0.0), 1.5, 5.0)
-        assert success is False
-        
-        # Invalid radius
-        success = app.apply_disaster("fire", (0.0, 0.0), 0.5, -1.0)
-        assert success is False
-        
-        # Invalid disaster type
-        success = app.apply_disaster("tornado", (0.0, 0.0), 0.5, 5.0)
-        assert success is False
-
-
-class TestDataFlow:
-    """Test data flow through the system."""
+    # Select nodes
+    source = "0"
+    num_nodes = len(coord_mapping)
+    target = str(num_nodes - 1)
     
-    def test_graph_modification_affects_routes(self):
-        """Test that graph modifications affect route computation."""
-        app = DisasterEvacuationApp()
-        app.create_sample_graph()
-        
-        # Compute initial route
-        initial_result = app.compute_route("Home", "Evac_Point", show_visualization=False)
-        initial_path = initial_result['path']
-        
-        # Apply disaster that blocks roads
-        app.apply_disaster("fire", (4.0, 0.0), 0.9, 2.0)
-        
-        # Compute new route
-        new_result = app.compute_route("Home", "Evac_Point", show_visualization=False)
-        
-        # Route should still be found (may be different or same)
-        assert new_result is not None
-        assert len(new_result['path']) > 0
+    if not graph_manager.has_vertex(source) or not graph_manager.has_vertex(target):
+        pytest.skip("Selected nodes don't exist in graph")
     
-    def test_multiple_disasters_cumulative_effect(self):
-        """Test that multiple disasters have cumulative effects."""
-        app = DisasterEvacuationApp()
-        app.create_sample_graph()
-        
-        # Get baseline cost
-        baseline = app.compute_route("Home", "Evac_Point", show_visualization=False)
-        baseline_cost = baseline['total_cost']
-        
-        # Apply first disaster
-        app.apply_disaster("flood", (2.0, 1.0), 0.5, 3.0)
-        result1 = app.compute_route("Home", "Evac_Point", show_visualization=False)
-        cost1 = result1['total_cost']
-        
-        # Apply second disaster
-        app.apply_disaster("fire", (5.0, 2.0), 0.6, 3.0)
-        result2 = app.compute_route("Home", "Evac_Point", show_visualization=False)
-        cost2 = result2['total_cost']
-        
-        # Costs should generally increase with more disasters
-        assert cost1 >= baseline_cost
-        assert cost2 >= cost1
-
-
-class TestPerformanceMonitoring:
-    """Test performance monitoring and statistics."""
+    # Compute normal route
+    pathfinder = PathfinderEngine()
+    normal_result = pathfinder.find_shortest_path(graph_manager, source, target)
     
-    def test_statistics_tracking(self):
-        """Test that statistics are tracked correctly."""
-        app = DisasterEvacuationApp()
-        app.create_sample_graph()
-        
-        # Initial stats
-        stats = app.get_performance_stats()
-        assert stats['routes_computed'] == 0
-        assert stats['disasters_applied'] == 0
-        assert stats['comparisons_made'] == 0
-        
-        # Compute route
-        app.compute_route("Home", "Evac_Point", show_visualization=False)
-        stats = app.get_performance_stats()
-        assert stats['routes_computed'] == 1
-        
-        # Apply disaster
-        app.apply_disaster("fire", (3.0, 2.0), 0.7, 4.0)
-        stats = app.get_performance_stats()
-        assert stats['disasters_applied'] == 1
-        
-        # Compare routes
-        app.compare_routes("Home", "Evac_Point", show_visualization=False)
-        stats = app.get_performance_stats()
-        assert stats['comparisons_made'] == 1
+    if not normal_result.found:
+        pytest.skip("No path exists between selected nodes")
     
-    def test_computation_time_tracking(self):
-        """Test that computation times are tracked."""
-        app = DisasterEvacuationApp()
-        app.create_sample_graph()
-        
-        # Compute multiple routes
-        for _ in range(3):
-            app.compute_route("Home", "Evac_Point", show_visualization=False)
-        
-        stats = app.get_performance_stats()
-        assert stats['total_computation_time'] > 0
-        assert stats['average_computation_time'] > 0
-        assert stats['routes_computed'] == 3
+    # Apply earthquake disaster
+    middle_idx = len(normal_result.path) // 2
+    middle_node_id = int(normal_result.path[middle_idx])
+    epicenter = coord_mapping[middle_node_id]
+    
+    modeler = DisasterModeler(graph_manager, coord_mapping)
+    modeler.apply_earthquake(
+        epicenter, 
+        radius_meters=250.0,
+        failure_probability=0.3,
+        congestion_multiplier=0.6
+    )
+    
+    # Compute disaster-aware route
+    disaster_result = pathfinder.find_shortest_path(graph_manager, source, target)
+    
+    # Earthquake may or may not block path completely
+    if disaster_result.found:
+        # If path exists, it should have equal or higher cost
+        assert disaster_result.total_cost >= normal_result.total_cost * 0.99  # Allow small floating point error

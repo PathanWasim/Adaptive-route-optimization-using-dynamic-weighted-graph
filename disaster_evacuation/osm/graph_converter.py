@@ -152,6 +152,10 @@ class GraphConverter:
         
         # Step 5: Add all edges to GraphManager
         for u_osm, v_osm, key, edge_data in osm_graph.edges(keys=True, data=True):
+            # Skip self-loops (not allowed in our graph model)
+            if u_osm == v_osm:
+                continue
+            
             # Convert OSM IDs to internal IDs
             u_internal = id_mapping[u_osm]
             v_internal = id_mapping[v_osm]
