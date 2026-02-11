@@ -24,63 +24,55 @@ app = Flask(__name__)
 # Global cache for loaded networks
 network_cache = {}
 
-# Predefined cities with their configurations (5km AREAS - Good balance)
+# Predefined cities - Small areas that load fast
 CITIES = {
-    "pune": {
-        "name": "Pune, Maharashtra, India",
-        "display_name": "Pune",
-        "center": [18.5204, 73.8567],
-        "zoom": 13,
-        "bbox": [18.4950, 18.5450, 73.8300, 73.8850]  # ~5km x 5km
+    "piedmont": {
+        "name": "Piedmont, California, USA",
+        "display_name": "Piedmont, CA",
+        "center": [37.8244, -122.2312],
+        "zoom": 14
     },
-    "mumbai": {
-        "name": "Mumbai, Maharashtra, India",
-        "display_name": "Mumbai",
-        "center": [19.0760, 72.8777],
-        "zoom": 13,
-        "bbox": [19.0510, 19.1010, 72.8527, 72.9027]  # ~5km x 5km
+    "berkeley": {
+        "name": "Berkeley, California, USA", 
+        "display_name": "Berkeley, CA",
+        "center": [37.8715, -122.2730],
+        "zoom": 13
     },
-    "bangalore": {
-        "name": "Bangalore, Karnataka, India",
-        "display_name": "Bangalore",
-        "center": [12.9716, 77.5946],
-        "zoom": 13,
-        "bbox": [12.9466, 12.9966, 77.5696, 77.6196]  # ~5km x 5km
+    "albany": {
+        "name": "Albany, California, USA",
+        "display_name": "Albany, CA",
+        "center": [37.8869, -122.2977],
+        "zoom": 14
     },
-    "delhi": {
-        "name": "New Delhi, Delhi, India",
-        "display_name": "Delhi",
-        "center": [28.6139, 77.2090],
-        "zoom": 13,
-        "bbox": [28.5889, 28.6389, 77.1840, 77.2340]  # ~5km x 5km
+    "pune_shivajinagar": {
+        "name": "Shivajinagar, Pune, India",
+        "display_name": "Pune - Shivajinagar",
+        "center": [18.5304, 73.8567],
+        "zoom": 15
     },
-    "hyderabad": {
-        "name": "Hyderabad, Telangana, India",
-        "display_name": "Hyderabad",
-        "center": [17.3850, 78.4867],
-        "zoom": 13,
-        "bbox": [17.3600, 17.4100, 78.4617, 78.5117]  # ~5km x 5km
+    "pune_koregaon": {
+        "name": "Koregaon Park, Pune, India",
+        "display_name": "Pune - Koregaon Park",
+        "center": [18.5362, 73.8958],
+        "zoom": 15
     },
-    "chennai": {
-        "name": "Chennai, Tamil Nadu, India",
-        "display_name": "Chennai",
-        "center": [13.0827, 80.2707],
-        "zoom": 13,
-        "bbox": [13.0577, 13.1077, 80.2457, 80.2957]  # ~5km x 5km
+    "mumbai_bandra": {
+        "name": "Bandra West, Mumbai, India",
+        "display_name": "Mumbai - Bandra",
+        "center": [19.0596, 72.8295],
+        "zoom": 15
     },
-    "kolkata": {
-        "name": "Kolkata, West Bengal, India",
-        "display_name": "Kolkata",
-        "center": [22.5726, 88.3639],
-        "zoom": 13,
-        "bbox": [22.5476, 22.5976, 88.3389, 88.3889]  # ~5km x 5km
+    "bangalore_indiranagar": {
+        "name": "Indiranagar, Bangalore, India",
+        "display_name": "Bangalore - Indiranagar",
+        "center": [12.9716, 77.6412],
+        "zoom": 15
     },
-    "ahmedabad": {
-        "name": "Ahmedabad, Gujarat, India",
-        "display_name": "Ahmedabad",
-        "center": [23.0225, 72.5714],
-        "zoom": 13,
-        "bbox": [22.9975, 23.0475, 72.5464, 72.5964]  # ~5km x 5km
+    "delhi_cp": {
+        "name": "Connaught Place, New Delhi, India",
+        "display_name": "Delhi - Connaught Place",
+        "center": [28.6315, 77.2167],
+        "zoom": 15
     }
 }
 
@@ -95,22 +87,11 @@ def load_network(city_key):
         return None
     
     try:
-        # Extract road network using bbox for fast, controlled loading
+        # Extract road network using place name (NO bbox - let OSM handle it)
         extractor = OSMExtractor()
         
-        if 'bbox' in city_config:
-            # Use bounding box for precise, fast extraction (8km x 8km area)
-            bbox = city_config['bbox']
-            print(f"Loading {city_config['display_name']} with bbox: {bbox}")
-            osm_graph = extractor.extract_by_bbox(
-                north=bbox[1], south=bbox[0],
-                east=bbox[3], west=bbox[2],
-                network_type="drive"
-            )
-        else:
-            # Fallback to place name (slower)
-            print(f"Loading {city_config['display_name']} by place name")
-            osm_graph = extractor.extract_by_place(city_config["name"], network_type="drive")
+        print(f"Loading {city_config['display_name']} by place name")
+        osm_graph = extractor.extract_by_place(city_config["name"], network_type="drive")
         
         print(f"Converting OSM graph to internal format...")
         # Convert to internal format

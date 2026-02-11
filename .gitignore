@@ -2,7 +2,7 @@
 .kiro/
 
 # Python
-cache
+cache/
 __pycache__/
 *.py[cod]
 *$py.class
@@ -172,6 +172,7 @@ $RECYCLE.BIN/
 
 # Log files
 *.log
+disaster_evacuation.log
 
 # Database files
 *.db
@@ -207,6 +208,7 @@ visualizations/*.png
 visualizations/*.jpg
 visualizations/*.svg
 plots/
+saved_visualizations/
 
 # Academic report drafts
 report_drafts/
@@ -216,3 +218,8 @@ report_drafts/
 # Experimental data
 experiments/
 results/
+
+# Project-specific ignores
+ENHANCED_UI_GUIDE.md
+CITY_LOADING_INFO.md
+INDIAN_CITIES_GUIDE.md
