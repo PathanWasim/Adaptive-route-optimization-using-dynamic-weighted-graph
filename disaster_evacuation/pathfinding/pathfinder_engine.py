@@ -27,7 +27,8 @@ class PathfinderEngine:
         """Initialize the pathfinder engine."""
         self._stats = AlgorithmStats()
     
-    def find_shortest_path(self, graph: GraphManager, source: str, target: str) -> PathResult:
+    def find_shortest_path(self, graph: GraphManager, source: str, target: str, 
+                          track_steps: bool = False) -> PathResult:
         """
         Find the shortest path between two vertices using Dijkstra's algorithm.
         
@@ -35,6 +36,7 @@ class PathfinderEngine:
             graph: GraphManager instance containing the graph
             source: Source vertex ID
             target: Target vertex ID
+            track_steps: If True, track algorithm steps for visualization
             
         Returns:
             PathResult containing the optimal path and metadata
@@ -45,6 +47,9 @@ class PathfinderEngine:
         # Reset statistics
         self._stats.reset()
         start_time = time.time()
+        
+        # Track algorithm steps for visualization
+        algorithm_steps = [] if track_steps else None
         
         # Validate input
         if not graph.has_vertex(source):
@@ -92,6 +97,16 @@ class PathfinderEngine:
             visited.add(current_vertex)
             self._stats.nodes_visited += 1
             
+            # Track step for visualization
+            if track_steps:
+                algorithm_steps.append({
+                    'type': 'visit',
+                    'node': current_vertex,
+                    'distance': current_distance,
+                    'visited': list(visited),
+                    'queue_size': len(priority_queue)
+                })
+            
             # Found target - reconstruct path
             if current_vertex == target:
                 path, edges_traversed = self._reconstruct_path(
@@ -100,13 +115,19 @@ class PathfinderEngine:
                 computation_time = time.time() - start_time
                 self._stats.computation_time = computation_time
                 
-                return PathResult(
+                result = PathResult(
                     path=path,
                     total_cost=distances[target],
                     edges_traversed=edges_traversed,
                     computation_time=computation_time,
                     nodes_visited=self._stats.nodes_visited
                 )
+                
+                # Add algorithm steps to result if tracking
+                if track_steps:
+                    result.algorithm_steps = algorithm_steps
+                
+                return result
             
             # Relax all outgoing edges
             for edge in graph.get_neighbors(current_vertex):
@@ -132,6 +153,15 @@ class PathfinderEngine:
                     predecessors[neighbor] = current_vertex
                     heapq.heappush(priority_queue, (tentative_distance, neighbor))
                     self._stats.queue_operations += 1
+                    
+                    # Track relaxation for visualization
+                    if track_steps:
+                        algorithm_steps.append({
+                            'type': 'relax',
+                            'from': current_vertex,
+                            'to': neighbor,
+                            'new_distance': tentative_distance
+                        })
         
         # No path found
         computation_time = time.time() - start_time

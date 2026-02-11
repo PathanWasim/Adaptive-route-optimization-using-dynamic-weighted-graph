@@ -38,6 +38,8 @@ class OSMExtractor:
         # Configure OSMnx settings for consistent behavior
         ox.settings.use_cache = True
         ox.settings.log_console = False
+        # CRITICAL: Increase max query area to allow larger bounding boxes
+        ox.settings.max_query_area_size = 50000000  # 50 million square meters (~50 km²)
     
     def extract_by_place(self, place_name: str, network_type: str = "drive") -> nx.MultiDiGraph:
         """
@@ -93,8 +95,11 @@ class OSMExtractor:
             EmptyNetworkError: If no roads found in the area
         """
         try:
-            # Download street network from bounding box
-            G = ox.graph_from_bbox(north, south, east, west, 
+            # CRITICAL: Set VERY large max query area to avoid sub-queries
+            ox.settings.max_query_area_size = 5000000000000  # 5 trillion square meters
+            
+            # Download street network from bounding box (using keyword arguments for newer OSMnx)
+            G = ox.graph_from_bbox(bbox=(north, south, east, west), 
                                   network_type=network_type, simplify=True)
             
             # Validate the extracted network
@@ -201,7 +206,6 @@ class OSMExtractor:
         
         Raises:
             EmptyNetworkError: If network has no edges
-            AreaTooLargeError: If area exceeds 3 km²
         """
         # Check if network is empty
         if graph.number_of_edges() == 0:
@@ -210,18 +214,7 @@ class OSMExtractor:
                 f"Try a different area with road infrastructure."
             )
         
-        # Check area bounds (1-3 km²)
-        stats = self.get_network_stats(graph)
-        area_km2 = stats['area_km2']
-        
-        if area_km2 > 3.0:
-            raise AreaTooLargeError(
-                f"Extracted area is {area_km2:.2f} km², which exceeds the 3 km² limit. "
-                f"Please use a smaller bounding box or more specific place name."
-            )
-        
-        # Note: We don't enforce minimum area strictly as some small neighborhoods
-        # might be valid test cases
+        # Note: Area validation removed to support larger city areas
     
     def __str__(self) -> str:
         """String representation of the extractor."""

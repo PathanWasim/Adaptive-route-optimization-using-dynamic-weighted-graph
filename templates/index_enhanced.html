@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Disaster Evacuation Routing - Algorithm Visualization</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #8b5cf6;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --dark: #1e293b;
+            --light: #f8fafc;
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            overflow: hidden;
+            color: var(--dark);
+        }
+
+        #app-container {
+            display: flex;
+            height: 100vh;
+            position: relative;
+        }
+
+        /* Glassmorphism Sidebar */
+        #sidebar {
+            width: 380px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-right: 1px solid var(--glass-border);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            overflow-y: auto;
+            z-index: 1000;
+            animation: slideInLeft 0.5s ease-out;
+        }
+
+        @keyframes slideInLeft {
+            from {
+                transform: translateX(-100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        #sidebar::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #sidebar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        #sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.9) 0%, rgba(139, 92, 246, 0.9) 100%);
+            color: white;
+            padding: 30px 25px;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .header h1 {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header p {
+            font-size: 13px;
+            opacity: 0.95;
+            font-weight: 300;
+        }
+
+        .section {
+            padding: 25px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            animation: fadeIn 0.5s ease-out;
+            background: rgba(255, 255, 255, 0.05);
+            margin: 10px;
+            border-radius: 15px;
+        }
+
+        .section h3 {
+            font-size: 14px;
+            color: white;
+            margin-bottom: 18px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-group {
+            margin-bottom: 18px;
+        }
+
+        .control-group label {
+            display: block;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .control-group select,
+        .control-group input[type="number"] {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            font-size: 14px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .control-group select:focus,
+        .control-group input[type="number"]:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+
+        .control-group select option {
+            background: var(--dark);
+            color: white;
+        }
+
+        .control-group input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.2);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .control-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .control-group input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .range-value {
+            display: inline-block;
+            margin-left: 10px;
+            font-weight: 700;
+            color: white;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px 20px;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.6);
+        }
+
+        .btn-primary:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            margin-top: 12px;
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .btn-animate {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+        }
+
+        .btn-animate:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.6);
+        }
+
+        .status {
+            padding: 12px 15px;
+            border-radius: 10px;
+            font-size: 13px;
+            margin-top: 12px;
+            backdrop-filter: blur(10px);
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .status.info {
+            background: rgba(59, 130, 246, 0.2);
+            color: white;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .status.success {
+            background: rgba(16, 185, 129, 0.2);
+            color: white;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .status.error {
+            background: rgba(239, 68, 68, 0.2);
+            color: white;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .status.warning {
+            background: rgba(245, 158, 11, 0.2);
+            color: white;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 25px;
+        }
+
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            border-top: 3px solid white;
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        .loading p {
+            color: white;
+            font-size: 14px;
+        }
+
+        .metrics {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 18px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-size: 13px;
+            align-items: center;
+        }
+
+        .metric-label {
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 500;
+        }
+
+        .metric-value {
+            font-weight: 700;
+            color: white;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 4px 12px;
+            border-radius: 8px;
+        }
+
+        .metric-value.increase {
+            background: rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+        }
+
+        .metric-value.decrease {
+            background: rgba(16, 185, 129, 0.2);
+            color: #6ee7b7;
+        }
+
+        #map {
+            flex: 1;
+            height: 100vh;
+            position: relative;
+        }
+
+        /* Algorithm Visualization Panel */
+        #algo-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 350px;
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            display: none;
+            animation: slideInRight 0.5s ease-out;
+            color: white;
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        #algo-panel h3 {
+            font-size: 16px;
+            margin-bottom: 15px;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .algo-step {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 3px solid var(--primary);
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .algo-step.visiting {
+            border-left-color: #f59e0b;
+        }
+
+        .algo-step.relaxing {
+            border-left-color: #10b981;
+        }
+
+        .algo-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .stat-box {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.7);
+            margin-top: 5px;
+        }
+
+        .legend {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 12px;
+            color: white;
+        }
+
+        .legend-color {
+            width: 35px;
+            height: 4px;
+            margin-right: 12px;
+            border-radius: 2px;
+        }
+
+        .legend-color.dashed {
+            background: repeating-linear-gradient(to right,
+                    #3b82f6 0px,
+                    #3b82f6 8px,
+                    transparent 8px,
+                    transparent 16px);
+            height: 4px;
+        }
+
+        .toggle-animation {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .toggle-animation input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .toggle-animation label {
+            color: white;
+            font-size: 13px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app-container">
+        <!-- Sidebar -->
+        <div id="sidebar">
+            <div class="header">
+                <h1>🚨 Disaster Evacuation Router</h1>
+                <p>Interactive Dijkstra Algorithm Visualization</p>
+            </div>
+
+            <!-- City Selection -->
+            <div class="section">
+                <h3>📍 Select City</h3>
+                <div class="control-group">
+                    <label>City</label>
+                    <select id="city-select">
+                        <option value="">-- Select a city --</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" id="load-network-btn" disabled>
+                    Load Road Network
+                </button>
+                <div id="network-status"></div>
+            </div>
+
+            <!-- Route Selection -->
+            <div class="section" id="route-section" style="display: none;">
+                <h3>🎯 Select Route</h3>
+                <div class="control-group">
+                    <label>Source Node</label>
+                    <input type="number" id="source-input" placeholder="Click on map" min="0">
+                </div>
+                <div class="control-group">
+                    <label>Destination Node</label>
+                    <input type="number" id="target-input" placeholder="Click on map" min="0">
+                </div>
+                <div class="status info">
+                    💡 Click on the map to select source and destination
+                </div>
+            </div>
+
+            <!-- Disaster Configuration -->
+            <div class="section" id="disaster-section" style="display: none;">
+                <h3>⚠️ Disaster Scenario</h3>
+                <div class="control-group">
+                    <label>Disaster Type</label>
+                    <select id="disaster-type">
+                        <option value="none">None</option>
+                        <option value="fire">🔥 Fire</option>
+                        <option value="flood">🌊 Flood</option>
+                        <option value="earthquake">🌍 Earthquake</option>
+                    </select>
+                </div>
+                <div id="disaster-controls" style="display: none;">
+                    <div class="control-group">
+                        <label>Radius (meters) <span class="range-value" id="radius-value">200</span></label>
+                        <input type="range" id="radius-slider" min="50" max="500" value="200" step="10">
+                    </div>
+                    <div class="control-group">
+                        <label>Severity <span class="range-value" id="severity-value">0.5</span></label>
+                        <input type="range" id="severity-slider" min="0.1" max="1.0" value="0.5" step="0.1">
+                    </div>
+                    <div class="status warning">
+                        📍 Click on map to set disaster epicenter
+                    </div>
+                </div>
+            </div>
+
+            <!-- Animation Toggle -->
+            <div class="section" id="animation-section" style="display: none;">
+                <h3>🎬 Visualization</h3>
+                <div class="toggle-animation">
+                    <input type="checkbox" id="animate-toggle" checked>
+                    <label for="animate-toggle">Show Algorithm Animation</label>
+                </div>
+            </div>
+
+            <!-- Compute Button -->
+            <div class="section" id="compute-section" style="display: none;">
+                <button class="btn btn-animate" id="compute-btn" disabled>
+                    🚀 Compute & Visualize Routes
+                </button>
+                <button class="btn btn-secondary" id="save-btn" style="display: none;">
+                    💾 Save Visualization
+                </button>
+            </div>
+
+            <!-- Results -->
+            <div class="section" id="results-section" style="display: none;">
+                <h3>📊 Results</h3>
+                <div class="metrics" id="metrics"></div>
+            </div>
+
+            <!-- Legend -->
+            <div class="section">
+                <h3>🗺️ Legend</h3>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color dashed"></div>
+                        <span>Normal Route</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #10b981;"></div>
+                        <span>Disaster-Aware Route</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #ef4444;"></div>
+                        <span>Blocked Roads</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #94a3b8;"></div>
+                        <span>Normal Roads</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Academic Note -->
+            <div class="section">
+                <div class="status info">
+                    <strong>Academic Integrity:</strong><br>
+                    ✓ All routing uses internal Dijkstra<br>
+                    ✓ Maps for visualization only<br>
+                    ✓ No external routing APIs
+                </div>
+            </div>
+        </div>
+
+        <!-- Map -->
+        <div id="map"></div>
+
+        <!-- Algorithm Visualization Panel -->
+        <div id="algo-panel">
+            <h3>⚙️ Algorithm Execution</h3>
+            <div id="algo-steps"></div>
+            <div class="algo-stats">
+                <div class="stat-box">
+                    <div class="stat-value" id="nodes-visited">0</div>
+                    <div class="stat-label">NODES VISITED</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="queue-size">0</div>
+                    <div class="stat-label">QUEUE SIZE</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Application state
+        const state = {
+            currentCity: null,
+            network: null,
+            map: null,
+            layers: {
+                roads: null,
+                normalRoute: null,
+                disasterRoute: null,
+                blockedRoads: null,
+                disasterCircle: null,
+                markers: [],
+                visitedNodes: []
+            },
+            selection: {
+                source: null,
+                target: null,
+                epicenter: null
+            },
+            animation: {
+                enabled: true,
+                speed: 100
+            }
+        };
+
+        // Initialize map
+        function initMap() {
+            state.map = L.map('map').setView([18.5204, 73.8567], 13);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19
+            }).addTo(state.map);
+
+            state.map.on('click', handleMapClick);
+        }
+
+        // Load cities
+        async function loadCities() {
+            try {
+                const response = await fetch('/api/cities');
+                const data = await response.json();
+
+                const select = document.getElementById('city-select');
+                data.cities.forEach(city => {
+                    const option = document.createElement('option');
+                    option.value = city.key;
+                    option.textContent = city.name;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading cities:', error);
+            }
+        }
+
+        // Load network
+        async function loadNetwork(cityKey) {
+            const statusDiv = document.getElementById('network-status');
+            statusDiv.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading road network...</p></div>';
+
+            try {
+                const response = await fetch('/api/load_network', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ city_key: cityKey })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    state.network = data;
+                    state.currentCity = cityKey;
+
+                    state.map.setView(data.center, data.zoom);
+                    drawRoadNetwork(data.edges);
+
+                    statusDiv.innerHTML = `
+                        <div class="status success">
+                            ✓ Loaded ${data.stats.num_nodes} nodes, ${data.stats.num_edges} edges
+                        </div>
+                    `;
+
+                    document.getElementById('route-section').style.display = 'block';
+                    document.getElementById('disaster-section').style.display = 'block';
+                    document.getElementById('animation-section').style.display = 'block';
+                    document.getElementById('compute-section').style.display = 'block';
+
+                } else {
+                    statusDiv.innerHTML = `<div class="status error">Error: ${data.error}</div>`;
+                }
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="status error">Error loading network</div>`;
+                console.error(error);
+            }
+        }
+
+        // Draw road network
+        function drawRoadNetwork(edges) {
+            if (state.layers.roads) {
+                state.map.removeLayer(state.layers.roads);
+            }
+
+            const roadLines = edges.map(edge => {
+                return L.polyline(edge.coords, {
+                    color: '#94a3b8',
+                    weight: 1,
+                    opacity: 0.3
+                });
+            });
+
+            state.layers.roads = L.layerGroup(roadLines).addTo(state.map);
+        }
+
+        // Handle map click
+        function handleMapClick(e) {
+            const lat = e.latlng.lat;
+            const lon = e.latlng.lng;
+
+            const nodeId = findNearestNode(lat, lon);
+            if (nodeId === null) return;
+
+            if (!state.selection.source) {
+                setSource(nodeId);
+            } else if (!state.selection.target) {
+                setTarget(nodeId);
+            } else if (document.getElementById('disaster-type').value !== 'none' && !state.selection.epicenter) {
+                setEpicenter(lat, lon);
+            }
+        }
+
+        // Find nearest node
+        function findNearestNode(lat, lon) {
+            if (!state.network) return null;
+
+            let minDist = Infinity;
+            let nearestId = null;
+
+            state.network.nodes.forEach(node => {
+                const dist = Math.sqrt(
+                    Math.pow(node.lat - lat, 2) + Math.pow(node.lon - lon, 2)
+                );
+                if (dist < minDist) {
+                    minDist = dist;
+                    nearestId = node.id;
+                }
+            });
+
+            return nearestId;
+        }
+
+        // Set source
+        function setSource(nodeId) {
+            state.selection.source = nodeId;
+            document.getElementById('source-input').value = nodeId;
+
+            const node = state.network.nodes.find(n => n.id === nodeId);
+            if (node) {
+                addMarker(node.lat, node.lon, '🟢', 'Source');
+            }
+
+            checkComputeReady();
+        }
+
+        // Set target
+        function setTarget(nodeId) {
+            state.selection.target = nodeId;
+            document.getElementById('target-input').value = nodeId;
+
+            const node = state.network.nodes.find(n => n.id === nodeId);
+            if (node) {
+                addMarker(node.lat, node.lon, '🔴', 'Target');
+            }
+
+            checkComputeReady();
+        }
+
+        // Set epicenter
+        function setEpicenter(lat, lon) {
+            state.selection.epicenter = [lat, lon];
+
+            if (state.layers.disasterCircle) {
+                state.map.removeLayer(state.layers.disasterCircle);
+            }
+
+            const radius = parseInt(document.getElementById('radius-slider').value);
+            state.layers.disasterCircle = L.circle([lat, lon], {
+                radius: radius,
+                color: '#ef4444',
+                fillColor: '#ef4444',
+                fillOpacity: 0.2
+            }).addTo(state.map);
+
+            addMarker(lat, lon, '⚠️', 'Disaster Epicenter');
+        }
+
+        // Add marker
+        function addMarker(lat, lon, icon, title) {
+            const marker = L.marker([lat, lon], {
+                icon: L.divIcon({
+                    html: icon,
+                    className: 'custom-marker',
+                    iconSize: [30, 30]
+                }),
+                title: title
+            }).addTo(state.map);
+
+            state.layers.markers.push(marker);
+        }
+
+        // Check if ready to compute
+        function checkComputeReady() {
+            const ready = state.selection.source !== null && state.selection.target !== null;
+            document.getElementById('compute-btn').disabled = !ready;
+        }
+
+        // Compute routes
+        async function computeRoutes() {
+            const btn = document.getElementById('compute-btn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Computing...';
+
+            // Clear previous visualizations
+            clearVisualizations();
+
+            const disasterType = document.getElementById('disaster-type').value;
+            const animated = document.getElementById('animate-toggle').checked;
+
+            const disaster = disasterType !== 'none' ? {
+                type: disasterType,
+                epicenter: state.selection.epicenter,
+                radius: parseInt(document.getElementById('radius-slider').value),
+                severity: parseFloat(document.getElementById('severity-slider').value)
+            } : { type: 'none' };
+
+            try {
+                const response = await fetch('/api/compute_route', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        city_key: state.currentCity,
+                        source_id: state.selection.source,
+                        target_id: state.selection.target,
+                        disaster: disaster,
+                        animated: animated
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    if (animated && data.normal_route.steps) {
+                        await animateAlgorithm(data);
+                    } else {
+                        displayResults(data);
+                    }
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error computing routes');
+                console.error(error);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🚀 Compute & Visualize Routes';
+            }
+        }
+
+        // Clear visualizations
+        function clearVisualizations() {
+            if (state.layers.normalRoute) state.map.removeLayer(state.layers.normalRoute);
+            if (state.layers.disasterRoute) state.map.removeLayer(state.layers.disasterRoute);
+            if (state.layers.blockedRoads) state.map.removeLayer(state.layers.blockedRoads);
+
+            state.layers.visitedNodes.forEach(marker => state.map.removeLayer(marker));
+            state.layers.visitedNodes = [];
+        }
+
+        // Animate algorithm execution
+        async function animateAlgorithm(data) {
+            const algoPanel = document.getElementById('algo-panel');
+            const algoSteps = document.getElementById('algo-steps');
+            const nodesVisitedEl = document.getElementById('nodes-visited');
+            const queueSizeEl = document.getElementById('queue-size');
+
+            algoPanel.style.display = 'block';
+            algoSteps.innerHTML = '';
+
+            // Animate normal route first
+            if (data.normal_route.steps) {
+                for (let i = 0; i < data.normal_route.steps.length; i++) {
+                    const step = data.normal_route.steps[i];
+
+                    if (step.type === 'visit') {
+                        // Show visited node
+                        const circle = L.circleMarker(step.coords, {
+                            radius: 6,
+                            fillColor: '#f59e0b',
+                            color: '#fff',
+                            weight: 2,
+                            opacity: 1,
+                            fillOpacity: 0.8
+                        }).addTo(state.map);
+
+                        state.layers.visitedNodes.push(circle);
+
+                        // Update stats
+                        nodesVisitedEl.textContent = step.visited.length;
+                        queueSizeEl.textContent = step.queue_size;
+
+                        // Add step to panel
+                        const stepDiv = document.createElement('div');
+                        stepDiv.className = 'algo-step visiting';
+                        stepDiv.innerHTML = `
+                            <strong>Visiting Node ${step.node}</strong><br>
+                            Distance: ${step.distance.toFixed(1)}m
+                        `;
+                        algoSteps.appendChild(stepDiv);
+
+                        // Keep only last 5 steps visible
+                        if (algoSteps.children.length > 5) {
+                            algoSteps.removeChild(algoSteps.firstChild);
+                        }
+                    }
+
+                    await sleep(state.animation.speed);
+                }
+            }
+
+            // Draw final routes
+            displayResults(data);
+        }
+
+        // Display results
+        function displayResults(data) {
+            // Draw normal route (blue dashed)
+            state.layers.normalRoute = L.polyline(data.normal_route.path, {
+                color: '#3b82f6',
+                weight: 5,
+                opacity: 0.8,
+                dashArray: '10, 10'
+            }).addTo(state.map);
+
+            // Draw blocked roads
+            if (data.blocked_edges && data.blocked_edges.length > 0) {
+                const blockedLines = data.blocked_edges.map(edge => {
+                    return L.polyline(edge, {
+                        color: '#ef4444',
+                        weight: 4,
+                        opacity: 0.8
+                    });
+                });
+                state.layers.blockedRoads = L.layerGroup(blockedLines).addTo(state.map);
+            }
+
+            // Draw disaster route (green solid)
+            if (data.disaster_route) {
+                state.layers.disasterRoute = L.polyline(data.disaster_route.path, {
+                    color: '#10b981',
+                    weight: 5,
+                    opacity: 0.9
+                }).addTo(state.map);
+            }
+
+            // Display metrics
+            const metricsDiv = document.getElementById('metrics');
+            let metricsHTML = `
+                <div class="metric-row">
+                    <span class="metric-label">Normal Route:</span>
+                    <span class="metric-value">${data.normal_route.distance.toFixed(1)}m</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">Computation Time:</span>
+                    <span class="metric-value">${(data.normal_route.computation_time * 1000).toFixed(2)}ms</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">Nodes Visited:</span>
+                    <span class="metric-value">${data.normal_route.nodes_visited}</span>
+                </div>
+            `;
+
+            if (data.disaster_route) {
+                metricsHTML += `
+                    <hr style="margin: 15px 0; border: none; border-top: 1px solid rgba(255,255,255,0.2);">
+                    <div class="metric-row">
+                        <span class="metric-label">Disaster Route:</span>
+                        <span class="metric-value">${data.disaster_route.distance.toFixed(1)}m</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Distance Increase:</span>
+                        <span class="metric-value increase">${data.metrics.distance_increase.toFixed(1)}m (${data.metrics.percent_increase.toFixed(1)}%)</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Routes Diverged:</span>
+                        <span class="metric-value">${data.metrics.routes_diverged ? 'Yes ✓' : 'No'}</span>
+                    </div>
+                `;
+            }
+
+            metricsDiv.innerHTML = metricsHTML;
+            document.getElementById('results-section').style.display = 'block';
+            document.getElementById('save-btn').style.display = 'block';
+        }
+
+        // Sleep utility
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Event listeners
+        document.getElementById('city-select').addEventListener('change', (e) => {
+            document.getElementById('load-network-btn').disabled = !e.target.value;
+        });
+
+        document.getElementById('load-network-btn').addEventListener('click', () => {
+            const cityKey = document.getElementById('city-select').value;
+            if (cityKey) loadNetwork(cityKey);
+        });
+
+        document.getElementById('disaster-type').addEventListener('change', (e) => {
+            const controls = document.getElementById('disaster-controls');
+            controls.style.display = e.target.value !== 'none' ? 'block' : 'none';
+            state.selection.epicenter = null;
+            if (state.layers.disasterCircle) {
+                state.map.removeLayer(state.layers.disasterCircle);
+            }
+        });
+
+        document.getElementById('radius-slider').addEventListener('input', (e) => {
+            document.getElementById('radius-value').textContent = e.target.value;
+            if (state.selection.epicenter) {
+                setEpicenter(state.selection.epicenter[0], state.selection.epicenter[1]);
+            }
+        });
+
+        document.getElementById('severity-slider').addEventListener('input', (e) => {
+            document.getElementById('severity-value').textContent = e.target.value;
+        });
+
+        document.getElementById('compute-btn').addEventListener('click', computeRoutes);
+
+        document.getElementById('save-btn').addEventListener('click', () => {
+            const filename = prompt('Enter filename:', 'visualization_' + Date.now() + '.json');
+            if (filename) {
+                fetch('/api/save_visualization', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        filename: filename,
+                        city: state.currentCity,
+                        selection: state.selection,
+                        timestamp: new Date().toISOString()
+                    })
+                }).then(() => alert('Visualization saved!'));
+            }
+        });
+
+        // Initialize
+        initMap();
+        loadCities();
+    </script>
+</body>
+
+</html>

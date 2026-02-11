@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Disaster Evacuation Routing System</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            overflow: hidden;
+        }
+
+        #app-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        #sidebar {
+            width: 350px;
+            background: white;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+            overflow-y: auto;
+            z-index: 1000;
+        }
+
+        #map {
+            flex: 1;
+            height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .section {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .section h3 {
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        .control-group label {
+            display: block;
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .control-group select,
+        .control-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .control-group input[type="range"] {
+            padding: 0;
+        }
+
+        .range-value {
+            display: inline-block;
+            margin-left: 10px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+            margin-top: 10px;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .metrics {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+        }
+
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 13px;
+        }
+
+        .metric-label {
+            color: #666;
+        }
+
+        .metric-value {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .metric-value.increase {
+            color: #e74c3c;
+        }
+
+        .metric-value.decrease {
+            color: #27ae60;
+        }
+
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 13px;
+            margin-top: 10px;
+        }
+
+        .status.info {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .status.success {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+
+        .status.error {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .status.warning {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .legend {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+
+        .legend-color {
+            width: 30px;
+            height: 3px;
+            margin-right: 10px;
+        }
+
+        .legend-color.dashed {
+            background: repeating-linear-gradient(to right,
+                    #3498db 0px,
+                    #3498db 5px,
+                    transparent 5px,
+                    transparent 10px);
+        }
+
+        #click-instruction {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            font-size: 13px;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app-container">
+        <!-- Sidebar -->
+        <div id="sidebar">
+            <div class="header">
+                <h1>🚨 Disaster Evacuation Router</h1>
+                <p>Interactive Algorithm Exploration Interface</p>
+            </div>
+
+            <!-- City Selection -->
+            <div class="section">
+                <h3>📍 Select City</h3>
+                <div class="control-group">
+                    <label>City</label>
+                    <select id="city-select">
+                        <option value="">-- Select a city --</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" id="load-network-btn" disabled>
+                    Load Road Network
+                </button>
+                <div id="network-status"></div>
+            </div>
+
+            <!-- Route Selection -->
+            <div class="section" id="route-section" style="display: none;">
+                <h3>🎯 Select Route</h3>
+                <div class="control-group">
+                    <label>Source Node</label>
+                    <input type="number" id="source-input" placeholder="Click on map or enter ID" min="0">
+                </div>
+                <div class="control-group">
+                    <label>Destination Node</label>
+                    <input type="number" id="target-input" placeholder="Click on map or enter ID" min="0">
+                </div>
+                <div class="status info">
+                    💡 Click on the map to select source and destination
+                </div>
+            </div>
+
+            <!-- Disaster Configuration -->
+            <div class="section" id="disaster-section" style="display: none;">
+                <h3>⚠️ Disaster Scenario</h3>
+                <div class="control-group">
+                    <label>Disaster Type</label>
+                    <select id="disaster-type">
+                        <option value="none">None</option>
+                        <option value="fire">🔥 Fire</option>
+                        <option value="flood">🌊 Flood</option>
+                        <option value="earthquake">🌍 Earthquake</option>
+                    </select>
+                </div>
+                <div id="disaster-controls" style="display: none;">
+                    <div class="control-group">
+                        <label>Radius (meters) <span class="range-value" id="radius-value">200</span></label>
+                        <input type="range" id="radius-slider" min="50" max="500" value="200" step="10">
+                    </div>
+                    <div class="control-group">
+                        <label>Severity <span class="range-value" id="severity-value">0.5</span></label>
+                        <input type="range" id="severity-slider" min="0.1" max="1.0" value="0.5" step="0.1">
+                    </div>
+                    <div class="status warning">
+                        📍 Click on map to set disaster epicenter
+                    </div>
+                </div>
+            </div>
+
+            <!-- Compute Button -->
+            <div class="section" id="compute-section" style="display: none;">
+                <button class="btn btn-primary" id="compute-btn" disabled>
+                    🚀 Compute Routes
+                </button>
+                <button class="btn btn-secondary" id="save-btn" style="display: none;">
+                    💾 Save Visualization
+                </button>
+            </div>
+
+            <!-- Results -->
+            <div class="section" id="results-section" style="display: none;">
+                <h3>📊 Results</h3>
+                <div class="metrics" id="metrics"></div>
+            </div>
+
+            <!-- Legend -->
+            <div class="section">
+                <h3>🗺️ Legend</h3>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color dashed"></div>
+                        <span>Normal Route</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #27ae60;"></div>
+                        <span>Disaster-Aware Route</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #e74c3c;"></div>
+                        <span>Blocked Roads</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #95a5a6;"></div>
+                        <span>Normal Roads</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Academic Note -->
+            <div class="section">
+                <div class="status info">
+                    <strong>Academic Integrity:</strong><br>
+                    ✓ All routing uses internal Dijkstra<br>
+                    ✓ Maps for visualization only<br>
+                    ✓ No external routing APIs
+                </div>
+            </div>
+        </div>
+
+        <!-- Map -->
+        <div id="map"></div>
+        <div id="click-instruction"></div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        // Application state
+        const state = {
+            currentCity: null,
+            network: null,
+            map: null,
+            layers: {
+                roads: null,
+                normalRoute: null,
+                disasterRoute: null,
+                blockedRoads: null,
+                disasterCircle: null,
+                markers: []
+            },
+            selection: {
+                source: null,
+                target: null,
+                epicenter: null
+            },
+            selectionMode: null // 'source', 'target', 'epicenter'
+        };
+
+        // Initialize map
+        function initMap() {
+            state.map = L.map('map').setView([18.5204, 73.8567], 12);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19
+            }).addTo(state.map);
+
+            // Add click handler
+            state.map.on('click', handleMapClick);
+        }
+
+        // Load cities
+        async function loadCities() {
+            try {
+                const response = await fetch('/api/cities');
+                const data = await response.json();
+
+                const select = document.getElementById('city-select');
+                data.cities.forEach(city => {
+                    const option = document.createElement('option');
+                    option.value = city.key;
+                    option.textContent = city.name;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading cities:', error);
+            }
+        }
+
+        // Load network
+        async function loadNetwork(cityKey) {
+            const statusDiv = document.getElementById('network-status');
+            statusDiv.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading road network...</p></div>';
+
+            try {
+                const response = await fetch('/api/load_network', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ city_key: cityKey })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    state.network = data;
+                    state.currentCity = cityKey;
+
+                    // Center map
+                    state.map.setView(data.center, data.zoom);
+
+                    // Draw road network
+                    drawRoadNetwork(data.edges);
+
+                    // Show success
+                    statusDiv.innerHTML = `
+                        <div class="status success">
+                            ✓ Loaded ${data.stats.num_nodes} nodes, ${data.stats.num_edges} edges
+                        </div>
+                    `;
+
+                    // Show route selection
+                    document.getElementById('route-section').style.display = 'block';
+                    document.getElementById('disaster-section').style.display = 'block';
+                    document.getElementById('compute-section').style.display = 'block';
+
+                } else {
+                    statusDiv.innerHTML = `<div class="status error">Error: ${data.error}</div>`;
+                }
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="status error">Error loading network</div>`;
+                console.error(error);
+            }
+        }
+
+        // Draw road network
+        function drawRoadNetwork(edges) {
+            // Clear existing roads
+            if (state.layers.roads) {
+                state.map.removeLayer(state.layers.roads);
+            }
+
+            const roadLines = edges.map(edge => {
+                return L.polyline(edge.coords, {
+                    color: '#95a5a6',
+                    weight: 1,
+                    opacity: 0.4
+                });
+            });
+
+            state.layers.roads = L.layerGroup(roadLines).addTo(state.map);
+        }
+
+        // Handle map click
+        function handleMapClick(e) {
+            const lat = e.latlng.lat;
+            const lon = e.latlng.lng;
+
+            // Find nearest node
+            const nodeId = findNearestNode(lat, lon);
+
+            if (nodeId === null) return;
+
+            // Determine what to set based on current mode
+            if (!state.selection.source) {
+                setSource(nodeId);
+            } else if (!state.selection.target) {
+                setTarget(nodeId);
+            } else if (document.getElementById('disaster-type').value !== 'none' && !state.selection.epicenter) {
+                setEpicenter(lat, lon);
+            }
+        }
+
+        // Find nearest node
+        function findNearestNode(lat, lon) {
+            if (!state.network) return null;
+
+            let minDist = Infinity;
+            let nearestId = null;
+
+            state.network.nodes.forEach(node => {
+                const dist = Math.sqrt(
+                    Math.pow(node.lat - lat, 2) + Math.pow(node.lon - lon, 2)
+                );
+                if (dist < minDist) {
+                    minDist = dist;
+                    nearestId = node.id;
+                }
+            });
+
+            return nearestId;
+        }
+
+        // Set source
+        function setSource(nodeId) {
+            state.selection.source = nodeId;
+            document.getElementById('source-input').value = nodeId;
+
+            const node = state.network.nodes.find(n => n.id === nodeId);
+            if (node) {
+                addMarker(node.lat, node.lon, '🟢', 'Source');
+            }
+
+            checkComputeReady();
+        }
+
+        // Set target
+        function setTarget(nodeId) {
+            state.selection.target = nodeId;
+            document.getElementById('target-input').value = nodeId;
+
+            const node = state.network.nodes.find(n => n.id === nodeId);
+            if (node) {
+                addMarker(node.lat, node.lon, '🔴', 'Target');
+            }
+
+            checkComputeReady();
+        }
+
+        // Set epicenter
+        function setEpicenter(lat, lon) {
+            state.selection.epicenter = [lat, lon];
+
+            // Draw circle
+            if (state.layers.disasterCircle) {
+                state.map.removeLayer(state.layers.disasterCircle);
+            }
+
+            const radius = parseInt(document.getElementById('radius-slider').value);
+            state.layers.disasterCircle = L.circle([lat, lon], {
+                radius: radius,
+                color: '#e74c3c',
+                fillColor: '#e74c3c',
+                fillOpacity: 0.2
+            }).addTo(state.map);
+
+            addMarker(lat, lon, '⚠️', 'Disaster Epicenter');
+        }
+
+        // Add marker
+        function addMarker(lat, lon, icon, title) {
+            const marker = L.marker([lat, lon], {
+                icon: L.divIcon({
+                    html: icon,
+                    className: 'custom-marker',
+                    iconSize: [30, 30]
+                }),
+                title: title
+            }).addTo(state.map);
+
+            state.layers.markers.push(marker);
+        }
+
+        // Check if ready to compute
+        function checkComputeReady() {
+            const ready = state.selection.source !== null && state.selection.target !== null;
+            document.getElementById('compute-btn').disabled = !ready;
+        }
+
+        // Compute routes
+        async function computeRoutes() {
+            const btn = document.getElementById('compute-btn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Computing...';
+
+            const disasterType = document.getElementById('disaster-type').value;
+            const disaster = disasterType !== 'none' ? {
+                type: disasterType,
+                epicenter: state.selection.epicenter,
+                radius: parseInt(document.getElementById('radius-slider').value),
+                severity: parseFloat(document.getElementById('severity-slider').value)
+            } : { type: 'none' };
+
+            try {
+                const response = await fetch('/api/compute_route', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        city_key: state.currentCity,
+                        source_id: state.selection.source,
+                        target_id: state.selection.target,
+                        disaster: disaster
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    displayResults(data);
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error computing routes');
+                console.error(error);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🚀 Compute Routes';
+            }
+        }
+
+        // Display results
+        function displayResults(data) {
+            // Clear previous routes
+            if (state.layers.normalRoute) state.map.removeLayer(state.layers.normalRoute);
+            if (state.layers.disasterRoute) state.map.removeLayer(state.layers.disasterRoute);
+            if (state.layers.blockedRoads) state.map.removeLayer(state.layers.blockedRoads);
+
+            // Draw normal route (blue dashed)
+            state.layers.normalRoute = L.polyline(data.normal_route.path, {
+                color: '#3498db',
+                weight: 4,
+                opacity: 0.8,
+                dashArray: '10, 10'
+            }).addTo(state.map);
+
+            // Draw blocked roads
+            if (data.blocked_edges && data.blocked_edges.length > 0) {
+                const blockedLines = data.blocked_edges.map(edge => {
+                    return L.polyline(edge, {
+                        color: '#e74c3c',
+                        weight: 3,
+                        opacity: 0.7
+                    });
+                });
+                state.layers.blockedRoads = L.layerGroup(blockedLines).addTo(state.map);
+            }
+
+            // Draw disaster route (green solid)
+            if (data.disaster_route) {
+                state.layers.disasterRoute = L.polyline(data.disaster_route.path, {
+                    color: '#27ae60',
+                    weight: 4,
+                    opacity: 0.9
+                }).addTo(state.map);
+            }
+
+            // Display metrics
+            const metricsDiv = document.getElementById('metrics');
+            let metricsHTML = `
+                <div class="metric-row">
+                    <span class="metric-label">Normal Route Distance:</span>
+                    <span class="metric-value">${data.normal_route.distance.toFixed(1)}m</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">Computation Time:</span>
+                    <span class="metric-value">${(data.normal_route.computation_time * 1000).toFixed(2)}ms</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">Nodes Visited:</span>
+                    <span class="metric-value">${data.normal_route.nodes_visited}</span>
+                </div>
+            `;
+
+            if (data.disaster_route) {
+                metricsHTML += `
+                    <hr style="margin: 15px 0; border: none; border-top: 1px solid #ddd;">
+                    <div class="metric-row">
+                        <span class="metric-label">Disaster Route Distance:</span>
+                        <span class="metric-value">${data.disaster_route.distance.toFixed(1)}m</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Distance Increase:</span>
+                        <span class="metric-value increase">${data.metrics.distance_increase.toFixed(1)}m (${data.metrics.percent_increase.toFixed(1)}%)</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Routes Diverged:</span>
+                        <span class="metric-value">${data.metrics.routes_diverged ? 'Yes ✓' : 'No'}</span>
+                    </div>
+                `;
+            } else if (data.metrics && data.metrics.no_path) {
+                metricsHTML += `
+                    <hr style="margin: 15px 0; border: none; border-top: 1px solid #ddd;">
+                    <div class="status error">
+                        ${data.metrics.message}
+                    </div>
+                `;
+            }
+
+            metricsDiv.innerHTML = metricsHTML;
+            document.getElementById('results-section').style.display = 'block';
+            document.getElementById('save-btn').style.display = 'block';
+        }
+
+        // Event listeners
+        document.getElementById('city-select').addEventListener('change', (e) => {
+            document.getElementById('load-network-btn').disabled = !e.target.value;
+        });
+
+        document.getElementById('load-network-btn').addEventListener('click', () => {
+            const cityKey = document.getElementById('city-select').value;
+            if (cityKey) loadNetwork(cityKey);
+        });
+
+        document.getElementById('disaster-type').addEventListener('change', (e) => {
+            const controls = document.getElementById('disaster-controls');
+            controls.style.display = e.target.value !== 'none' ? 'block' : 'none';
+            state.selection.epicenter = null;
+            if (state.layers.disasterCircle) {
+                state.map.removeLayer(state.layers.disasterCircle);
+            }
+        });
+
+        document.getElementById('radius-slider').addEventListener('input', (e) => {
+            document.getElementById('radius-value').textContent = e.target.value;
+            if (state.selection.epicenter) {
+                setEpicenter(state.selection.epicenter[0], state.selection.epicenter[1]);
+            }
+        });
+
+        document.getElementById('severity-slider').addEventListener('input', (e) => {
+            document.getElementById('severity-value').textContent = e.target.value;
+        });
+
+        document.getElementById('compute-btn').addEventListener('click', computeRoutes);
+
+        document.getElementById('save-btn').addEventListener('click', () => {
+            const filename = prompt('Enter filename:', 'visualization_' + Date.now() + '.json');
+            if (filename) {
+                fetch('/api/save_visualization', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        filename: filename,
+                        city: state.currentCity,
+                        selection: state.selection,
+                        timestamp: new Date().toISOString()
+                    })
+                }).then(() => alert('Visualization saved!'));
+            }
+        });
+
+        // Initialize
+        initMap();
+        loadCities();
+    </script>
+</body>
+
+</html>
