@@ -1,12 +1,14 @@
 # Adaptive Disaster Evacuation Route Optimization Using Dynamic Graph Algorithms
 
+**Author:** [Your Name / Team Name]  
+**Date:** February 18, 2026
+
 **A Comprehensive Technical Analysis**
 
 ---
 
 ## Abstract
-
-This paper presents an adaptive disaster evacuation routing system that leverages graph algorithms to compute optimal evacuation paths in urban environments during emergency scenarios. The system models real-world cities as dynamic weighted graphs using OpenStreetMap data and employs Dijkstra's algorithm with priority queue optimization to achieve O(E log V) time complexity. We demonstrate how traditional shortest-path algorithms can be adapted to account for disaster-induced hazards by dynamically adjusting edge weights based on disaster type, proximity, and severity. The implementation includes a web-based visualization platform that provides step-by-step algorithm execution, enabling both practical application and educational insight into graph algorithm behavior. Experimental results on real city networks show that disaster-aware routing can increase path length by 15-40% while avoiding high-risk areas, validating the system's effectiveness in emergency scenarios.
+Disaster management requires rapid and adaptive route planning to ensure safe evacuation. This project implements a **dynamic weighted graph** model where road networks are treated as graphs with edge weights representing travel time, adjusted in real-time based on disaster severity (e.g., fire, flood). We developed a full-stack web application using **Flask** and **Leaflet.js** to visualize these routes. To demonstrate algorithmic efficiency, we implemented and compared **Dijkstra's Algorithm**, **A* Search**, and **Bellman-Ford Algorithm**. Empirical benchmarks show that while Dijkstra is optimal for general routing, **A* with Haversine heuristic** reduces the search space by up to **53%**, making it superior for point-to-point evacuation. The system handles dynamic updates efficiently, rerouting users around hazard zones in milliseconds.
 
 **Keywords:** Graph Algorithms, Dijkstra's Algorithm, Disaster Management, Route Optimization, OpenStreetMap, Emergency Evacuation
 
@@ -161,6 +163,20 @@ Where `type_factor` varies by disaster:
 - Flood: 5.0 (moderate area effect)
 - Earthquake: 8.0 (structural damage)
 
+### 3.3 Data Flow
+1.  **Input:** User selects source/target and disaster parameters (epicenter, radius).
+2.  **Processing:**
+    *   Graph nodes/edges are retrieved from memory.
+    *   Edge weights are dynamically updated based on disaster model.
+    *   Selected Algorithm (Dijkstra/A*/Bellman-Ford) computes the path.
+3.  **Output:** JSON response with path coordinates, distance, and metrics.
+
+### 3.4 Design Decisions
+*   **Why Python/Flask?** Python offers rapid prototyping and excellent graph libraries (NetworkX, OSMnx). Flask provides a lightweight REST API wrapper.
+*   **Why Adjacency List?** Our road networks are **sparse graphs** ($E \approx 3V$). An adjacency matrix ($O(V^2)$) would be memory inefficient.
+*   **Why A*?** For evacuation, we need point-to-point routing. A* is the industry standard for this as it uses geographic knowledge to prune the search.
+*   **Why Leaflet?** Open-source, lightweight, and capable of rendering custom polylines without API costs compared to Google Maps.
+
 ---
 
 ## 4. Algorithm Implementation
@@ -207,9 +223,32 @@ def find_shortest_path(graph, source, target):
                 pq.insert((tentative_dist, neighbor))
     
     return None  # No path found
-```
 
-### 4.2 Correctness Proof
+### 4.2 Disaster Risk Integration
+The core innovation is the dynamic weight adjustment. The weight $W$ of an edge $e$ is calculated as:
+$$ W(e) = L(e) \times (1 + S(d) \times P(e)) $$
+Where:
+*   $L(e)$ is the geographical length of the edge.
+*   $S(d)$ is the severity of the disaster (0 to 1).
+*   $P(e)$ is the proximity factor derived from the distance to the disaster epicenter.
+If an edge falls within the "danger zone" radius, its weight increases, effectively making it "longer" to the algorithm, pushing the path outward.
+
+### 4.3 Additional Algorithms
+To provide a comprehensive analysis, we extended the system with two additional algorithms:
+
+#### 4.3.1 A* Search Algorithm
+A* acts as an informed search, using a heuristic $h(n)$ to estimate the cost from node $n$ to the target.
+*   **Heuristic:** We used **Haversine Distance** (Great Circle Distance) as it is **admissible** (straight line $\le$ road distance) and **consistent**.
+*   **Optimization:** By directing the search towards the target, A* avoids exploring nodes in the opposite direction.
+*   **Result:** Identical optimal paths to Dijkstra but with significantly fewer node visits.
+
+#### 4.3.2 Bellman-Ford Algorithm
+Implemented for comparative variation, Bellman-Ford relaxes all edges $|V|-1$ times.
+*   **Time Complexity:** $O(V \cdot E)$.
+*   **Use Case:** Capable of detecting negative weight cycles (though not present in road networks).
+*   **Performance:** Significantly slower than Dijkstra/A* but useful for validating the correctness of the greedy approach used by Dijkstra.
+
+### 4.4 Correctness Proof
 
 **Theorem:** Dijkstra's algorithm computes the shortest path from source to all reachable vertices in a graph with non-negative edge weights.
 
@@ -295,17 +334,21 @@ We evaluated the system on real-world city networks with the following parameter
 - Nodes visited
 - Route divergence (binary)
 
-### 5.2 Performance Results
+### 5.2 Performance Benchmarks
+We conducted empirical benchmarks on random connected graphs with varying sizes.
 
-**Computation Time:**
+| Vertices (V) | Edges (E) | Dijkstra (ms) | A* (ms) | Bellman-Ford (ms) | A* Reduction |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **50** | 200 | 0.11 | 0.11 | 0.50 | 53.3% |
+| **100** | 400 | 0.27 | 0.31 | 1.01 | 39.2% |
+| **200** | 800 | 0.52 | 0.56 | 2.29 | 45.8% |
+| **400** | 1600 | 1.39 | 1.71 | 5.09 | 18.9% |
 
-| Network Size | Nodes | Edges | Avg Time (ms) | Max Time (ms) |
-|--------------|-------|-------|---------------|---------------|
-| Small        | 500   | 1,200 | 12.3          | 18.7          |
-| Medium       | 1,500 | 3,800 | 45.6          | 67.2          |
-| Large        | 3,000 | 7,500 | 98.4          | 142.1         |
+*Data averaged over 3 runs on a standard development machine.*
 
-All computations completed in under 150ms, suitable for real-time emergency response.
+### 5.3 Comparative Analysis
+1.  **Dijkstra vs Bellman-Ford:** As expected, Bellman-Ford scales poorly. At $V=400$, it is approximately **3.6x slower** than Dijkstra. On larger city graphs with thousands of nodes, this gap widens exponentially, making Bellman-Ford unsuitable for real-time routing.
+2.  **Dijkstra vs A*:** Both algorithms found the path in comparable wall-clock time in Python (heuristic calculation overhead slightly offsets node savings). However, A* consistently visited fewer nodes (up to **53% reduction**), which proves its efficiency in reducing the search space. In a compiled language (C++/Java), A* would likely show a net speedup.
 
 **Path Adaptation:**
 

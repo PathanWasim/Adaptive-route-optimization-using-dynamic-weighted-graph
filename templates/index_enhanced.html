@@ -532,6 +532,111 @@
             font-size: 13px;
             cursor: pointer;
         }
+
+        /* Algorithm Comparison Table */
+        .algo-comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+            font-size: 12px;
+        }
+
+        .algo-comparison-table th,
+        .algo-comparison-table td {
+            padding: 8px 6px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .algo-comparison-table th {
+            font-weight: 600;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .algo-comparison-table tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .algo-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .algo-badge.best {
+            background: rgba(16, 185, 129, 0.3);
+            color: #6ee7b7;
+        }
+
+        .algo-badge.worst {
+            background: rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+        }
+
+        .btn-demo {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+            margin-top: 12px;
+        }
+
+        .btn-demo:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(245, 158, 11, 0.6);
+        }
+
+        .btn-benchmark {
+            background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+            margin-top: 12px;
+        }
+
+        .btn-benchmark:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.6);
+        }
+
+        .complexity-counter {
+            text-align: center;
+            padding: 12px;
+            margin-top: 10px;
+            background: rgba(99, 102, 241, 0.2);
+            border-radius: 10px;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+        }
+
+        .complexity-counter .time-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #a5b4fc;
+            font-family: 'Courier New', monospace;
+        }
+
+        .complexity-counter .time-label {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 4px;
+        }
+
+        .keyboard-hint {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+            text-align: center;
+            margin-top: 8px;
+        }
+
+        .keyboard-hint kbd {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
     </style>
 </head>
 
@@ -541,7 +646,7 @@
         <div id="sidebar">
             <div class="header">
                 <h1>🚨 Disaster Evacuation Router</h1>
-                <p>Interactive Dijkstra Algorithm Visualization</p>
+                <p>Comparative Algorithm Visualization — Dijkstra · A* · Bellman-Ford</p>
             </div>
 
             <!-- City Selection -->
@@ -602,6 +707,23 @@
                 </div>
             </div>
 
+            <!-- Algorithm Selection -->
+            <div class="section" id="algorithm-section" style="display: none;">
+                <h3>🧠 Algorithm</h3>
+                <div class="control-group">
+                    <label>Pathfinding Algorithm</label>
+                    <select id="algorithm-select">
+                        <option value="dijkstra">Dijkstra — O(E log V)</option>
+                        <option value="astar">A* (Haversine) — O(E log V)</option>
+                        <option value="bellman_ford">Bellman-Ford — O(VE)</option>
+                    </select>
+                </div>
+                <div class="toggle-animation">
+                    <input type="checkbox" id="compare-toggle">
+                    <label for="compare-toggle">Compare All Algorithms</label>
+                </div>
+            </div>
+
             <!-- Animation Toggle -->
             <div class="section" id="animation-section" style="display: none;">
                 <h3>🎬 Visualization</h3>
@@ -616,15 +738,26 @@
                 <button class="btn btn-animate" id="compute-btn" disabled>
                     🚀 Compute & Visualize Routes
                 </button>
+                <button class="btn btn-demo" id="auto-demo-btn">
+                    🎬 Auto-Demo
+                </button>
+                <button class="btn btn-benchmark" id="benchmark-btn">
+                    📊 Run Complexity Benchmarks
+                </button>
                 <button class="btn btn-secondary" id="save-btn" style="display: none;">
                     💾 Save Visualization
                 </button>
+                <div class="keyboard-hint">Press <kbd>D</kbd> Demo · <kbd>B</kbd> Benchmark · <kbd>R</kbd> Reset</div>
             </div>
 
             <!-- Results -->
             <div class="section" id="results-section" style="display: none;">
                 <h3>📊 Results</h3>
                 <div class="metrics" id="metrics"></div>
+                <div id="algo-comparison-section" style="display: none;">
+                    <h3 style="margin-top: 15px;">🔬 Algorithm Comparison</h3>
+                    <div id="algo-comparison"></div>
+                </div>
             </div>
 
             <!-- Legend -->
@@ -654,7 +787,7 @@
             <div class="section">
                 <div class="status info">
                     <strong>Academic Integrity:</strong><br>
-                    ✓ All routing uses internal Dijkstra<br>
+                    ✓ All routing uses internal Dijkstra/A*/Bellman-Ford<br>
                     ✓ Maps for visualization only<br>
                     ✓ No external routing APIs
                 </div>
@@ -677,6 +810,10 @@
                     <div class="stat-value" id="queue-size">0</div>
                     <div class="stat-label">QUEUE SIZE</div>
                 </div>
+            </div>
+            <div class="complexity-counter">
+                <div class="time-value" id="complexity-time">0.00</div>
+                <div class="time-label">Computation Time (ms)</div>
             </div>
         </div>
     </div>
@@ -767,6 +904,7 @@
 
                     document.getElementById('route-section').style.display = 'block';
                     document.getElementById('disaster-section').style.display = 'block';
+                    document.getElementById('algorithm-section').style.display = 'block';
                     document.getElementById('animation-section').style.display = 'block';
                     document.getElementById('compute-section').style.display = 'block';
 
@@ -940,6 +1078,8 @@
 
             const disasterType = document.getElementById('disaster-type').value;
             const animated = document.getElementById('animate-toggle').checked;
+            const algorithm = document.getElementById('algorithm-select').value;
+            const compareAlgorithms = document.getElementById('compare-toggle').checked;
 
             const disaster = disasterType !== 'none' ? {
                 type: disasterType,
@@ -957,7 +1097,9 @@
                         source_id: state.selection.source,
                         target_id: state.selection.target,
                         disaster: disaster,
-                        animated: animated
+                        animated: animated,
+                        algorithm: algorithm,
+                        compare_algorithms: compareAlgorithms
                     })
                 });
 
@@ -1001,6 +1143,13 @@
             algoPanel.style.display = 'block';
             algoSteps.innerHTML = '';
 
+            // Start complexity timer
+            const startTime = performance.now();
+            const complexityEl = document.getElementById('complexity-time');
+            const timerInterval = setInterval(() => {
+                complexityEl.textContent = ((performance.now() - startTime)).toFixed(1);
+            }, 50);
+
             // Animate normal route first
             if (data.normal_route.steps) {
                 for (let i = 0; i < data.normal_route.steps.length; i++) {
@@ -1041,6 +1190,10 @@
                     await sleep(state.animation.speed);
                 }
             }
+
+            // Stop timer
+            clearInterval(timerInterval);
+            complexityEl.textContent = ((performance.now() - startTime)).toFixed(1);
 
             // Draw final routes
             displayResults(data);
@@ -1115,6 +1268,203 @@
             metricsDiv.innerHTML = metricsHTML;
             document.getElementById('results-section').style.display = 'block';
             document.getElementById('save-btn').style.display = 'block';
+
+            // Show algorithm comparison table if available
+            if (data.algorithm_comparison) {
+                displayAlgorithmComparison(data.algorithm_comparison);
+            }
+        }
+
+        // Display algorithm comparison table
+        function displayAlgorithmComparison(comparison) {
+            const section = document.getElementById('algo-comparison-section');
+            const container = document.getElementById('algo-comparison');
+            section.style.display = 'block';
+
+            const algoNames = { dijkstra: 'Dijkstra', astar: 'A*', bellman_ford: 'Bellman-Ford' };
+            const algoComplexity = { dijkstra: 'O(E log V)', astar: 'O(E log V)', bellman_ford: 'O(VE)' };
+
+            // Find best values for highlighting
+            const times = Object.values(comparison).map(c => c.time_ms);
+            const nodes = Object.values(comparison).map(c => c.nodes_visited);
+            const bestTime = Math.min(...times);
+            const bestNodes = Math.min(...nodes.filter(n => n > 0));
+            const worstTime = Math.max(...times);
+
+            let html = `
+                <table class="algo-comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Algorithm</th>
+                            <th>Time (ms)</th>
+                            <th>Nodes Visited</th>
+                            <th>Complexity</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            for (const [key, data] of Object.entries(comparison)) {
+                const timeBadge = data.time_ms === bestTime ? '<span class="algo-badge best">Fastest</span>' :
+                    data.time_ms === worstTime ? '<span class="algo-badge worst">Slowest</span>' : '';
+                const nodesBadge = data.nodes_visited === bestNodes ? '<span class="algo-badge best">Fewest</span>' : '';
+
+                html += `
+                    <tr>
+                        <td><strong>${algoNames[key]}</strong></td>
+                        <td>${data.time_ms.toFixed(2)} ${timeBadge}</td>
+                        <td>${data.nodes_visited} ${nodesBadge}</td>
+                        <td>${algoComplexity[key]}</td>
+                    </tr>
+                `;
+            }
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        // Auto-demo function
+        async function autoDemo() {
+            const btn = document.getElementById('auto-demo-btn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Loading Demo...';
+
+            try {
+                // Load demo config
+                const demoResp = await fetch('/api/auto_demo');
+                const demo = await demoResp.json();
+
+                // Set city
+                document.getElementById('city-select').value = demo.city_key;
+                await loadNetwork(demo.city_key);
+
+                // Wait for network to load
+                await sleep(500);
+
+                // Set source and target
+                setSource(demo.source_id);
+                setTarget(demo.target_id);
+
+                // Set disaster
+                document.getElementById('disaster-type').value = demo.disaster.type;
+                document.getElementById('disaster-controls').style.display = 'block';
+                document.getElementById('radius-slider').value = demo.disaster.radius;
+                document.getElementById('radius-value').textContent = demo.disaster.radius;
+                document.getElementById('severity-slider').value = demo.disaster.severity;
+                document.getElementById('severity-value').textContent = demo.disaster.severity;
+                setEpicenter(demo.disaster.epicenter[0], demo.disaster.epicenter[1]);
+
+                // Enable comparison
+                document.getElementById('compare-toggle').checked = true;
+
+                // Compute
+                await computeRoutes();
+
+            } catch (error) {
+                console.error('Demo error:', error);
+                alert('Demo failed: ' + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🎬 Auto-Demo';
+            }
+        }
+
+        // Run benchmarks
+        async function runBenchmarks() {
+            const btn = document.getElementById('benchmark-btn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Running Benchmarks...';
+
+            try {
+                const response = await fetch('/api/benchmark', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sizes: [50, 100, 200, 500, 1000],
+                        runs_per_size: 3
+                    })
+                });
+
+                const data = await response.json();
+
+                // Show results in a modal-style overlay
+                showBenchmarkResults(data);
+
+            } catch (error) {
+                console.error('Benchmark error:', error);
+                alert('Benchmarks failed: ' + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '📊 Run Complexity Benchmarks';
+            }
+        }
+
+        // Show benchmark results
+        function showBenchmarkResults(data) {
+            const chartData = data.chart_data;
+            const metricsDiv = document.getElementById('metrics');
+            const section = document.getElementById('results-section');
+            section.style.display = 'block';
+
+            let html = '<h4 style="color:white; margin-bottom:12px;">📊 Empirical Complexity Analysis</h4>';
+            html += '<table class="algo-comparison-table">';
+            html += '<thead><tr><th>V</th><th>E</th><th>Dijkstra (ms)</th><th>A* (ms)</th><th>B-F (ms)</th></tr></thead><tbody>';
+
+            for (const r of data.results) {
+                const bf = r.bellman_ford.avg_time_ms !== null ? r.bellman_ford.avg_time_ms.toFixed(2) : 'N/A';
+                html += `<tr>
+                    <td>${r.vertices}</td>
+                    <td>${r.edges}</td>
+                    <td>${r.dijkstra.avg_time_ms.toFixed(2)}</td>
+                    <td>${r.astar.avg_time_ms.toFixed(2)}</td>
+                    <td>${bf}</td>
+                </tr>`;
+            }
+
+            html += '</tbody></table>';
+
+            // ASCII-style bar chart
+            html += '<div style="margin-top: 15px; font-family: monospace; font-size: 11px; color: rgba(255,255,255,0.8);">';
+            html += '<strong>Runtime Scaling (Dijkstra vs A*):</strong><br>';
+            const maxTime = Math.max(...chartData.dijkstra_times);
+            for (let i = 0; i < chartData.labels.length; i++) {
+                const V = chartData.labels[i];
+                const dBar = Math.round(chartData.dijkstra_times[i] / maxTime * 20);
+                const aBar = Math.round(chartData.astar_times[i] / maxTime * 20);
+                html += `V=${String(V).padStart(5)} D|█`.repeat(0) + '█'.repeat(dBar) + `| ${chartData.dijkstra_times[i].toFixed(1)}ms<br>`;
+                html += `${' '.repeat(6)} A|` + '█'.repeat(aBar) + `| ${chartData.astar_times[i].toFixed(1)}ms<br>`;
+            }
+            html += '</div>';
+
+            // Node reduction stats
+            html += '<div style="margin-top: 12px;">';
+            for (const r of data.results) {
+                if (r.astar.node_reduction_pct !== undefined) {
+                    html += `<div class="metric-row"><span class="metric-label">V=${r.vertices} A* Node Reduction:</span><span class="metric-value decrease">${r.astar.node_reduction_pct.toFixed(1)}%</span></div>`;
+                }
+            }
+            html += '</div>';
+
+            metricsDiv.innerHTML = html;
+        }
+
+        // Reset selections
+        function resetSelections() {
+            state.selection = { source: null, target: null, epicenter: null };
+            document.getElementById('source-input').value = '';
+            document.getElementById('target-input').value = '';
+            document.getElementById('disaster-type').value = 'none';
+            document.getElementById('disaster-controls').style.display = 'none';
+            clearVisualizations();
+            state.layers.markers.forEach(m => state.map.removeLayer(m));
+            state.layers.markers = [];
+            if (state.layers.disasterCircle) {
+                state.map.removeLayer(state.layers.disasterCircle);
+                state.layers.disasterCircle = null;
+            }
+            document.getElementById('results-section').style.display = 'none';
+            document.getElementById('algo-panel').style.display = 'none';
+            document.getElementById('compute-btn').disabled = true;
         }
 
         // Sleep utility
@@ -1154,6 +1504,9 @@
 
         document.getElementById('compute-btn').addEventListener('click', computeRoutes);
 
+        document.getElementById('auto-demo-btn').addEventListener('click', autoDemo);
+        document.getElementById('benchmark-btn').addEventListener('click', runBenchmarks);
+
         document.getElementById('save-btn').addEventListener('click', () => {
             const filename = prompt('Enter filename:', 'visualization_' + Date.now() + '.json');
             if (filename) {
@@ -1167,6 +1520,18 @@
                         timestamp: new Date().toISOString()
                     })
                 }).then(() => alert('Visualization saved!'));
+            }
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Ignore if typing in an input
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+
+            switch (e.key.toLowerCase()) {
+                case 'd': autoDemo(); break;
+                case 'b': runBenchmarks(); break;
+                case 'r': resetSelections(); break;
             }
         });
 

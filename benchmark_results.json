@@ -1,0 +1,122 @@
+[
+  {
+    "vertices": 50,
+    "edges": 200,
+    "dijkstra": {
+      "avg_time_ms": 0.1139666613501807,
+      "min_time_ms": 0.05129998316988349,
+      "max_time_ms": 0.16689999029040337,
+      "avg_nodes_visited": 25.0,
+      "theoretical_complexity": "O(E log V)",
+      "theoretical_value": 1128.7712379549448
+    },
+    "astar": {
+      "avg_time_ms": 0.1114333087267975,
+      "min_time_ms": 0.042599975131452084,
+      "max_time_ms": 0.17389998538419604,
+      "avg_nodes_visited": 11.666666666666666,
+      "theoretical_complexity": "O(E log V)",
+      "theoretical_value": 1128.7712379549448,
+      "node_reduction_pct": 53.333333333333336
+    },
+    "bellman_ford": {
+      "avg_time_ms": 0.49866668026273453,
+      "min_time_ms": 0.44139998499304056,
+      "max_time_ms": 0.6026000482961535,
+      "avg_nodes_visited": 50.0,
+      "theoretical_complexity": "O(V * E)",
+      "theoretical_value": 10000,
+      "skipped": false
+    }
+  },
+  {
+    "vertices": 100,
+    "edges": 400,
+    "dijkstra": {
+      "avg_time_ms": 0.271766659958909,
+      "min_time_ms": 0.15689997235313058,
+      "max_time_ms": 0.39140001172199845,
+      "avg_nodes_visited": 66.33333333333333,
+      "theoretical_complexity": "O(E log V)",
+      "theoretical_value": 2657.5424759098896
+    },
+    "astar": {
+      "avg_time_ms": 0.31373331633706886,
+      "min_time_ms": 0.10730000212788582,
+      "max_time_ms": 0.6149999680928886,
+      "avg_nodes_visited": 40.333333333333336,
+      "theoretical_complexity": "O(E log V)",
+      "theoretical_value": 2657.5424759098896,
+      "node_reduction_pct": 39.19597989949749
+    },
+    "bellman_ford": {
+      "avg_time_ms": 1.0146333370357752,
+      "min_time_ms": 0.9525999776087701,
+      "max_time_ms": 1.0730000212788582,
+      "avg_nodes_visited": 100.0,
+      "theoretical_complexity": "O(V * E)",
+      "theoretical_value": 40000,
+      "skipped": false
+    }
+  },
+  {
+    "vertices": 200,
+    "edges": 800,
+    "dijkstra": {
+      "avg_time_ms": 0.5157666746526957,
+      "min_time_ms": 0.43569999979808927,
+      "max_time_ms": 0.6324999849312007,
+      "avg_nodes_visited": 126.0,
+      "theoretical_complexity": "O(E log V)",
+      "theoretical_value": 6115.084951819779
+    },
+    "astar": {
+      "avg_time_ms": 0.5591999894628922,
+      "min_time_ms": 0.2699000178836286,
+      "max_time_ms": 0.9450999787077308,
+      "avg_nodes_visited": 68.33333333333333,
+      "theoretical_complexity": "O(E log V)",
+      "theoretical_value": 6115.084951819779,
+      "node_reduction_pct": 45.767195767195766
+    },
+    "bellman_ford": {
+      "avg_time_ms": 2.2852999779085317,
+      "min_time_ms": 1.99709995649755,
+      "max_time_ms": 2.572899975348264,
+      "avg_nodes_visited": 200.0,
+      "theoretical_complexity": "O(V * E)",
+      "theoretical_value": 160000,
+      "skipped": false
+    }
+  },
+  {
+    "vertices": 400,
+    "edges": 1600,
+    "dijkstra": {
+      "avg_time_ms": 1.3910999987274408,
+      "min_time_ms": 0.685799983330071,
+      "max_time_ms": 2.057400008197874,
+      "avg_nodes_visited": 297.6666666666667,
+      "theoretical_complexity": "O(E log V)",
+      "theoretical_value": 13830.16990363956
+    },
+    "astar": {
+      "avg_time_ms": 1.7072666669264436,
+      "min_time_ms": 0.7412999984808266,
+      "max_time_ms": 2.3224999895319343,
+      "avg_nodes_visited": 241.33333333333334,
+      "theoretical_complexity": "O(E log V)",
+      "theoretical_value": 13830.16990363956,
+      "node_reduction_pct": 18.92497200447928
+    },
+    "bellman_ford": {
+      "avg_time_ms": 5.094633340680351,
+      "min_time_ms": 4.778500006068498,
+      "max_time_ms": 5.575000017415732,
+      "avg_nodes_visited": 400.0,
+      "theoretical_complexity": "O(V * E)",
+      "theoretical_value": 640000,
+      "skipped": false
+    }
+  }
+]

@@ -44,17 +44,18 @@ class WeightCalculator:
         Returns:
             Risk penalty value
         """
-        # Calculate distance from disaster epicenter to edge midpoint
+        # Calculate distance and proximity
         distance_to_epicenter = disaster.distance_to_point(edge_midpoint)
-        
-        # Calculate proximity factor (1.0 at epicenter, 0.0 at max radius)
         proximity_factor = max(0.0, 1.0 - distance_to_epicenter / disaster.max_effect_radius)
+        proximity_factor = proximity_factor ** 2
         
-        # Get disaster-specific multiplier
+        # Calculate effective added weight (simulated)
+        # This is for display/stats purposes to show "how much risk added"
+        # We assume a base unit distance if edge length is unknown here, 
+        # or we just return the raw risk factor.
+        # Let's return the risk factor component: Severity * Proximity * Multiplier * 10
         disaster_multiplier = disaster.get_disaster_multiplier()
-        
-        # Calculate risk penalty
-        risk_penalty = edge.base_risk * disaster_multiplier * proximity_factor * disaster.severity
+        risk_penalty = disaster.severity * proximity_factor * disaster_multiplier * 10.0
         
         return risk_penalty
     
@@ -98,8 +99,24 @@ class WeightCalculator:
         if disaster is not None:
             if edge_midpoint is None:
                 raise ValueError("Edge midpoint required when disaster is provided")
-            risk_penalty = WeightCalculator.calculate_risk_penalty(edge, disaster, edge_midpoint)
-            weight += risk_penalty
+            # Calculate distance to disaster center
+            distance_to_epicenter = disaster.distance_to_point(edge_midpoint)
+            
+            # Calculate proximity factor (1.0 at epicenter, 0.0 at max radius)
+            # We use a power curve to make the gradient steeper near the center
+            proximity_factor = max(0.0, 1.0 - distance_to_epicenter / disaster.max_effect_radius)
+            proximity_factor = proximity_factor ** 2  # Experiential penalty
+            
+            # Get disaster-specific multiplier (Fire=10, Flood=5, etc.)
+            disaster_multiplier = disaster.get_disaster_multiplier()
+            
+            # Calculate risk multiplier
+            # Formula: 1.0 + (Severity * Proximity * TypeMultiplier * 10)
+            # Example: Fire(10) * Sev(0.8) * Prox(1.0) * 10 = 80x weight penalty
+            risk_factor = disaster.severity * proximity_factor * disaster_multiplier * 10.0
+            
+            # Apply multiplicative penalty
+            weight *= (1.0 + risk_factor)
         else:
             weight += edge.base_risk
         

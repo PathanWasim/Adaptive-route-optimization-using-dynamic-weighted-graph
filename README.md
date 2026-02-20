@@ -10,11 +10,14 @@ Traditional navigation systems compute routes based on shortest distance, but du
 
 - **Real-World Road Networks**: Integration with OpenStreetMap for authentic city road networks
 - **Interactive Web Application**: Professional web interface with Leaflet.js map visualization
-- **Algorithm Visualization**: Step-by-step animation of Dijkstra's algorithm execution
+- **Algorithm Visualization**: Step-by-step animation of Dijkstra, A*, and Bellman-Ford execution
 - **Dynamic Graph Modeling**: Cities represented as weighted graphs G(V, E) with dynamic edge weights
-- **Disaster Simulation**: Support for three disaster types (Fire, Flood, Earthquake) with different risk models
-- **Optimal Pathfinding**: Dijkstra's algorithm implementation with O(E log V) complexity
-- **Comparative Analysis**: Real-time comparison of normal vs disaster-aware routing
+- **Multi-Algorithm Support**: Implementation of Dijkstra, A* (Haversine Heuristic), and Bellman-Ford
+- **Disaster Simulation**: Support for three disaster types (Fire, Flood, Earthquake) with exponential risk multipliers
+- **Optimal Pathfinding**: Comparative analysis of O(E log V) vs O(VE) algorithms
+- **Benchmarking Suite**: Built-in empirical complexity analysis tools
+- **Education Mode**: "Textbook Graph" for learning algorithm mechanics on small datasets
+- **Auto-Demo**: One-click presentation mode for easy evaluation
 - **Academic Rigor**: Formal correctness proofs and comprehensive property-based testing
 
 ## Available Cities
@@ -99,6 +102,27 @@ python demo.py
 ```
 
 This loads a real city network, applies a disaster, and computes evacuation routes.
+
+### Run Benchmarks
+
+To analyze the time complexity of the implemented algorithms:
+
+```bash
+python run_benchmarks.py
+```
+
+This will run Dijkstra, A*, and Bellman-Ford on random graphs of increasing size (50-400 nodes) and save the results to `benchmark_results.json`.
+
+### Auto-Demo Mode
+
+1. Open the web interface.
+2. Click the **"🎬 Auto-Demo"** button in the sidebar.
+3. Sit back and watch the system automatically:
+   - Select a city
+   - Pick source/destination
+   - Apply a disaster
+   - Compare all algorithms
+   - Animate the results
 
 ### Programmatic Usage
 
