@@ -12,7 +12,7 @@ import numpy as np
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple, Any
 from ..models import Vertex, Edge, DisasterEvent, VertexType, DisasterType
-from ..graph import GraphManager
+from ..models import GraphManager
 
 
 class VisualizationEngine:

@@ -7,7 +7,7 @@ Feature: disaster-evacuation-routing, Property 3: Weight Calculation Consistency
 
 import pytest
 from hypothesis import given, strategies as st, assume
-from disaster_evacuation.graph import WeightCalculator
+from disaster_evacuation.models import WeightCalculator
 from disaster_evacuation.models import Edge, DisasterEvent, DisasterType
 
 
@@ -71,8 +71,7 @@ class TestWeightCalculationConsistency:
         Property 3: Weight Calculation Consistency - Dynamic Weight
         
         For any edge and disaster event, the calculated dynamic weight should
-        exactly equal distance + risk_penalty + congestion_penalty according
-        to the specified formula.
+        exactly equal α * distance + β * (distance * risk_factor) + γ * congestion_penalty
         
         **Validates: Requirements 1.4**
         """
@@ -85,13 +84,13 @@ class TestWeightCalculationConsistency:
         )
         
         # Calculate components separately
-        risk_penalty = WeightCalculator.calculate_risk_penalty(
+        risk_factor = WeightCalculator.calculate_risk_penalty(
             edge, disaster, edge_midpoint
         )
         congestion_penalty = WeightCalculator.calculate_congestion_penalty(edge)
         
-        # Expected weight is sum of components
-        expected_weight = distance + risk_penalty + congestion_penalty
+        # Expected weight is W = d + r_d + c (where alpha=1, beta=1, gamma=1 by default)
+        expected_weight = distance + (distance * risk_factor) + congestion_penalty
         
         # Verify exact consistency
         assert abs(dynamic_weight - expected_weight) < 1e-10
@@ -138,8 +137,8 @@ class TestWeightCalculationConsistency:
         """
         Property 3: Weight Calculation Consistency - Risk Penalty Formula
         
-        For any edge and disaster event, the risk penalty should follow the exact formula:
-        risk_penalty = base_risk * disaster_multiplier * proximity_factor * severity
+        For any edge and disaster event, the risk penalty factor should follow the exact formula:
+        risk_factor = severity * (proximity_factor^2) * disaster_multiplier * 10
         
         **Validates: Requirements 1.4**
         """
@@ -154,9 +153,10 @@ class TestWeightCalculationConsistency:
         # Calculate expected penalty using the formula
         distance_to_epicenter = disaster.distance_to_point(edge_midpoint)
         proximity_factor = max(0.0, 1.0 - distance_to_epicenter / radius)
+        proximity_factor = proximity_factor ** 2
         disaster_multiplier = disaster.get_disaster_multiplier()
         
-        expected_penalty = risk * disaster_multiplier * proximity_factor * severity
+        expected_penalty = severity * proximity_factor * disaster_multiplier * 10.0
         
         # Verify exact consistency
         assert abs(calculated_penalty - expected_penalty) < 1e-10
@@ -232,7 +232,7 @@ class TestWeightCalculationConsistency:
         """
         Property 3: Weight Calculation Consistency - Component Sum
         
-        For any edge and disaster, the dynamic weight should always equal the sum
+        For any edge and disaster, the dynamic weight should always equal the scaled sum
         of its individual components, regardless of the specific values.
         
         **Validates: Requirements 1.4**
@@ -250,13 +250,13 @@ class TestWeightCalculationConsistency:
         
         # Calculate individual components
         base_distance = distance
-        risk_penalty = WeightCalculator.calculate_risk_penalty(
+        risk_factor = WeightCalculator.calculate_risk_penalty(
             edge, disaster, edge_midpoint
         )
         congestion_penalty = WeightCalculator.calculate_congestion_penalty(edge)
         
-        # Sum of components
-        component_sum = base_distance + risk_penalty + congestion_penalty
+        # Sum of components using scalarization structure (alphas=1)
+        component_sum = base_distance + (base_distance * risk_factor) + congestion_penalty
         
         # Verify consistency
         assert abs(total_weight - component_sum) < 1e-10
@@ -306,7 +306,7 @@ class TestWeightCalculationConsistency:
         Property 3: Weight Calculation Consistency - Proximity Factor
         
         For any point and disaster epicenter, the proximity factor should follow
-        the formula: max(0, 1 - distance_to_epicenter / max_effect_radius).
+        the formula: max(0, 1 - distance_to_epicenter / max_effect_radius) ** 2.
         
         **Validates: Requirements 1.4**
         """
@@ -325,12 +325,13 @@ class TestWeightCalculationConsistency:
             # Calculate risk penalty (which uses proximity factor internally)
             risk_penalty = WeightCalculator.calculate_risk_penalty(edge, disaster, point)
             
-            # Calculate expected proximity factor
+            # Calculate expected proximity factor squared
             distance_to_epicenter = disaster.distance_to_point(point)
             expected_proximity = max(0.0, 1.0 - distance_to_epicenter / radius)
+            expected_proximity = expected_proximity ** 2
             
             # Calculate expected risk penalty
-            expected_penalty = risk * disaster.get_disaster_multiplier() * expected_proximity * disaster.severity
+            expected_penalty = disaster.severity * expected_proximity * disaster.get_disaster_multiplier() * 10.0
             
             # Verify consistency
             assert abs(risk_penalty - expected_penalty) < 1e-10

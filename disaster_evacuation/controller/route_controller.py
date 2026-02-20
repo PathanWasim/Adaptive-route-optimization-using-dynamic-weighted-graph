@@ -7,9 +7,9 @@ validates inputs, and coordinates between graph management, disaster modeling, a
 
 from typing import Dict, List, Optional, Tuple
 from ..models import PathResult, DisasterEvent, DisasterType, VertexType
-from ..graph import GraphManager
-from ..disaster import DisasterModel
-from ..pathfinding import PathfinderEngine
+from ..models import GraphManager
+from ..models import DisasterModel
+from ..routing import PathfinderEngine
 
 
 class RouteController:

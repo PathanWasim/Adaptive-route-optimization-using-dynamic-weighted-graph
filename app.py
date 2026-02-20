@@ -17,11 +17,12 @@ import json
 import time
 from disaster_evacuation.osm.osm_extractor import OSMExtractor
 from disaster_evacuation.osm.graph_converter import GraphConverter
-from disaster_evacuation.disaster.disaster_modeler import DisasterModeler
-from disaster_evacuation.pathfinding.pathfinder_engine import PathfinderEngine
-from disaster_evacuation.pathfinding.astar_engine import AStarEngine
-from disaster_evacuation.pathfinding.bellman_ford_engine import BellmanFordEngine
-from disaster_evacuation.benchmarks.benchmark_runner import BenchmarkRunner
+from disaster_evacuation.models.disaster_modeler import DisasterModeler
+from disaster_evacuation.routing.dijkstra import PathfinderEngine
+from disaster_evacuation.routing.astar import AStarEngine
+from disaster_evacuation.routing.bellman_ford import BellmanFordEngine
+from disaster_evacuation.analysis.benchmarks import BenchmarkRunner
+from disaster_evacuation.visualization.heatmap import HeatmapGenerator
 
 app = Flask(__name__)
 
@@ -90,7 +91,7 @@ CITIES = {
 
 def create_textbook_graph():
     """Create a simple, manually defined graph for educational visualization."""
-    from disaster_evacuation.graph.graph_manager import GraphManager
+    from disaster_evacuation.models.graph import GraphManager
     from disaster_evacuation.models.vertex import VertexType
     
     graph = GraphManager()
@@ -272,10 +273,14 @@ def load_network_api():
 
 def _get_pathfinder(algorithm_name):
     """Get the appropriate pathfinder engine based on algorithm name."""
+    from disaster_evacuation.routing import YenKShortestPaths, BidirectionalDijkstra
+    
     engines = {
         'dijkstra': PathfinderEngine,
         'astar': AStarEngine,
-        'bellman_ford': BellmanFordEngine
+        'bellman_ford': BellmanFordEngine,
+        'yen_k_shortest': YenKShortestPaths,
+        'bidirectional': BidirectionalDijkstra
     }
     engine_class = engines.get(algorithm_name, PathfinderEngine)
     return engine_class()
@@ -347,20 +352,52 @@ def compute_route():
         return jsonify({"error": "Invalid source ID"}), 400
     if target_id < 0 or target_id >= len(coord_mapping):
         return jsonify({"error": "Invalid target ID"}), 400
+    weights_config = data.get('weights', {})
+    alpha = float(weights_config.get('alpha', 1.0))
+    beta = float(weights_config.get('beta', 1.0))
+    gamma = float(weights_config.get('gamma', 1.0))
+
+    # ---------- Initialize Disaster and Weights ----------
+    from disaster_evacuation.models import DisasterModel, DisasterEvent, DisasterType
+    import datetime
+    
+    disaster_model = DisasterModel()
+    # Apply baseline weights considering objective scalars
+    disaster_model.apply_objective_weights(graph_manager, alpha, beta, gamma)
     
     source = str(source_id)
     target = str(target_id)
     
     # ---------- Compute normal route (without disaster) ----------
     pathfinder = _get_pathfinder(algorithm)
+    k_paths = int(data.get('k_paths', 3))
     start_time = time.time()
-    normal_result = pathfinder.find_shortest_path(graph_manager, source, target, track_steps=animated)
+    
+    if algorithm == 'yen_k_shortest':
+        normal_results = pathfinder.find_k_shortest_paths(graph_manager, source, target, k=k_paths)
+        if not normal_results:
+            return jsonify({"error": "No path exists between selected nodes"}), 400
+        normal_result = normal_results[0]
+    else:
+        normal_result = pathfinder.find_shortest_path(graph_manager, source, target, track_steps=animated)
+        if not normal_result.found:
+            return jsonify({"error": "No path exists between selected nodes"}), 400
+        normal_results = [normal_result]
+        
     normal_time = time.time() - start_time
     
-    if not normal_result.found:
-        return jsonify({"error": "No path exists between selected nodes"}), 400
+    normal_routes_data = []
+    for res in normal_results:
+        normal_routes_data.append({
+            "path": _path_to_coords(res.path, coord_mapping),
+            "distance": res.total_cost,
+            "nodes_visited": res.nodes_visited,
+            "computation_time": res.computation_time,
+            "path_edges": len(res.path) - 1
+        })
+        
+    normal_path_coords = normal_routes_data[0]["path"]
     
-    normal_path_coords = _path_to_coords(normal_result.path, coord_mapping)
     normal_steps_coords = None
     if animated and hasattr(normal_result, 'algorithm_steps'):
         normal_steps_coords = _convert_steps_to_coords(normal_result.algorithm_steps, coord_mapping)
@@ -369,7 +406,7 @@ def compute_route():
     algo_comparison = None
     if compare_algorithms:
         algo_comparison = {}
-        for algo_name in ['dijkstra', 'astar', 'bellman_ford']:
+        for algo_name in ['dijkstra', 'astar', 'bidirectional', 'bellman_ford']:
             engine = _get_pathfinder(algo_name)
             t0 = time.time()
             result = engine.find_shortest_path(graph_manager, source, target)
@@ -389,59 +426,76 @@ def compute_route():
     disaster_result = None
     disaster_steps_coords = None
     blocked_edges = []
+    active_event = None
     
     disaster_type = disaster_config.get('type', 'none')
     if disaster_type != 'none':
         epicenter = disaster_config.get('epicenter')
-        radius = disaster_config.get('radius', 200.0)
-        severity = disaster_config.get('severity', 0.5)
+        radius = float(disaster_config.get('radius', 200.0))
+        severity = float(disaster_config.get('severity', 0.5))
         
         if epicenter:
-            modeler = DisasterModeler(graph_manager, coord_mapping)
-            
-            if disaster_type == 'fire':
-                modeler.apply_fire(tuple(epicenter), radius)
-            elif disaster_type == 'flood':
-                modeler.apply_flood(tuple(epicenter), radius, severity)
+            dt_enum = DisasterType.FIRE
+            if disaster_type == 'flood':
+                dt_enum = DisasterType.FLOOD
             elif disaster_type == 'earthquake':
-                modeler.apply_earthquake(tuple(epicenter), radius, severity, severity * 0.8)
+                dt_enum = DisasterType.EARTHQUAKE
+                
+            active_event = DisasterEvent(
+                disaster_type=dt_enum,
+                epicenter=tuple(epicenter),
+                severity=severity,
+                max_effect_radius=radius,
+                start_time=datetime.datetime.now()
+            )
+            
+            # Apply disaster weights according to multi-objective scalars
+            disaster_model.apply_disaster_effects(graph_manager, active_event, alpha, beta, gamma)
             
             # Compute disaster-aware route using selected algorithm
             start_time = time.time()
-            disaster_result = pathfinder.find_shortest_path(graph_manager, source, target, track_steps=animated)
+            if algorithm == 'yen_k_shortest':
+                disaster_results = pathfinder.find_k_shortest_paths(graph_manager, source, target, k=k_paths)
+                disaster_result = disaster_results[0] if disaster_results else None
+            else:
+                disaster_result = pathfinder.find_shortest_path(graph_manager, source, target, track_steps=animated)
+                disaster_results = [disaster_result] if disaster_result.found else []
+                
             disaster_time = time.time() - start_time
             
-            if disaster_result.found:
-                disaster_path_coords = _path_to_coords(disaster_result.path, coord_mapping)
+            disaster_routes_data = []
+            for res in disaster_results:
+                disaster_routes_data.append({
+                    "path": _path_to_coords(res.path, coord_mapping),
+                    "distance": res.total_cost,
+                    "nodes_visited": res.nodes_visited,
+                    "computation_time": res.computation_time,
+                    "path_edges": len(res.path) - 1
+                })
+            
+            if disaster_result and disaster_result.found:
+                disaster_path_coords = disaster_routes_data[0]["path"]
                 if animated and hasattr(disaster_result, 'algorithm_steps'):
                     disaster_steps_coords = _convert_steps_to_coords(disaster_result.algorithm_steps, coord_mapping)
             
-            # Get blocked edges
-            for node_id in range(len(coord_mapping)):
-                vertex_id = str(node_id)
-                if not graph_manager.has_vertex(vertex_id):
-                    continue
-                
-                neighbors = graph_manager.get_neighbors(vertex_id)
-                for edge in neighbors:
-                    target_id_int = int(edge.target)
-                    weight = graph_manager.get_edge_weight(vertex_id, edge.target)
-                    
-                    if weight >= DisasterModeler.BLOCKED_WEIGHT * 0.99:
-                        lat1, lon1 = coord_mapping[node_id]
-                        lat2, lon2 = coord_mapping[target_id_int]
+            # Get blocked edges for visualization
+            for edge in graph_manager.get_all_edges():
+                if edge.is_blocked:
+                    if int(edge.source) in coord_mapping and int(edge.target) in coord_mapping:
+                        lat1, lon1 = coord_mapping[int(edge.source)]
+                        lat2, lon2 = coord_mapping[int(edge.target)]
                         blocked_edges.append([[lat1, lon1], [lat2, lon2]])
+            
+            # Reset graph to normal objective weights immediately to un-pollute the cache
+            disaster_model.clear_all_disaster_effects(graph_manager)
+            disaster_model.apply_objective_weights(graph_manager, alpha, beta, gamma)
     
     # ---------- Prepare response ----------
     response = {
         "algorithm": algorithm,
-        "normal_route": {
-            "path": normal_path_coords,
-            "distance": normal_result.total_cost,
-            "nodes_visited": normal_result.nodes_visited,
-            "computation_time": normal_time,
-            "path_edges": len(normal_result.path) - 1
-        },
+        "k_paths": k_paths,
+        "normal_routes": normal_routes_data,
+        "normal_route": normal_routes_data[0], # Maintain backwards compatibility
         "blocked_edges": blocked_edges
     }
     
@@ -452,13 +506,8 @@ def compute_route():
         response["algorithm_comparison"] = algo_comparison
     
     if disaster_result and disaster_result.found:
-        response["disaster_route"] = {
-            "path": disaster_path_coords,
-            "distance": disaster_result.total_cost,
-            "nodes_visited": disaster_result.nodes_visited,
-            "computation_time": disaster_time,
-            "path_edges": len(disaster_result.path) - 1
-        }
+        response["disaster_routes"] = disaster_routes_data
+        response["disaster_route"] = disaster_routes_data[0] # Maintain backwards compatibility
         
         if animated:
             response["disaster_route"]["steps"] = disaster_steps_coords
@@ -479,6 +528,34 @@ def compute_route():
         }
     
     return jsonify(response)
+
+
+@app.route('/api/heatmap', methods=['POST'])
+def get_heatmap():
+    """Generate continuous risk heatmap data based on disaster event."""
+    data = request.json
+    city_key = data.get('city_key')
+    disaster_data = data.get('disaster')
+    
+    if not city_key or not disaster_data:
+        return jsonify({"error": "Missing city_key or disaster data"}), 400
+        
+    graph_manager = app.graphs.get(city_key)
+    if not graph_manager:
+        return jsonify({"error": f"Network not loaded for {city_key}"}), 400
+        
+    try:
+        disaster_type = DisasterType(disaster_data['type'])
+        epicenter = tuple(disaster_data['epicenter'])
+        severity = float(disaster_data['severity'])
+        radius = float(disaster_data['radius'])
+        
+        disaster = DisasterEvent(disaster_type, epicenter, severity, radius)
+    except (ValueError, KeyError, TypeError) as e:
+        return jsonify({"error": f"Invalid disaster parameters: {str(e)}"}), 400
+        
+    heatmap_data = HeatmapGenerator.generate_heatmap_data(graph_manager, disaster)
+    return jsonify({"heatmap_data": heatmap_data})
 
 
 @app.route('/api/save_visualization', methods=['POST'])

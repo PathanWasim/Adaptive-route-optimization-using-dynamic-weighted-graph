@@ -8,7 +8,7 @@ import pytest
 import networkx as nx
 import math
 from disaster_evacuation.osm.graph_converter import GraphConverter
-from disaster_evacuation.disaster.disaster_modeler import (
+from disaster_evacuation.models.disaster_modeler import (
     DisasterModeler,
     InvalidCoordinateError,
     InvalidRadiusError

@@ -707,7 +707,7 @@
                 </div>
             </div>
 
-            <!-- Algorithm Selection -->
+            <!-- Algorithm Selection & Objectives -->
             <div class="section" id="algorithm-section" style="display: none;">
                 <h3>🧠 Algorithm</h3>
                 <div class="control-group">
@@ -715,12 +715,32 @@
                     <select id="algorithm-select">
                         <option value="dijkstra">Dijkstra — O(E log V)</option>
                         <option value="astar">A* (Haversine) — O(E log V)</option>
+                        <option value="bidirectional">Bidirectional Dijkstra — O(b^(d/2))</option>
                         <option value="bellman_ford">Bellman-Ford — O(VE)</option>
+                        <option value="yen_k_shortest">Yen's k-Shortest Paths</option>
                     </select>
+                </div>
+                <div class="control-group" id="k-paths-control" style="display: none;">
+                    <label>Number of Alternative Paths (k) <span class="range-value" id="k-paths-value">3</span></label>
+                    <input type="range" id="k-paths-slider" min="1" max="5" value="3" step="1">
                 </div>
                 <div class="toggle-animation">
                     <input type="checkbox" id="compare-toggle">
                     <label for="compare-toggle">Compare All Algorithms</label>
+                </div>
+
+                <h3 style="margin-top: 15px;">⚖️ Routing Objectives</h3>
+                <div class="control-group">
+                    <label>Distance Priority (α) <span class="range-value" id="alpha-value">1.0</span></label>
+                    <input type="range" id="alpha-slider" min="0.0" max="5.0" value="1.0" step="0.1">
+                </div>
+                <div class="control-group">
+                    <label>Risk Avoidance (β) <span class="range-value" id="beta-value">1.0</span></label>
+                    <input type="range" id="beta-slider" min="0.0" max="5.0" value="1.0" step="0.1">
+                </div>
+                <div class="control-group">
+                    <label>Congestion Avoidance (γ) <span class="range-value" id="gamma-value">1.0</span></label>
+                    <input type="range" id="gamma-slider" min="0.0" max="5.0" value="1.0" step="0.1">
                 </div>
             </div>
 
@@ -740,6 +760,10 @@
                 </button>
                 <button class="btn btn-demo" id="auto-demo-btn">
                     🎬 Auto-Demo
+                </button>
+                <button class="btn btn-demo" id="simulate-time-btn"
+                    style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+                    ⏱ Simulate R(t)
                 </button>
                 <button class="btn btn-benchmark" id="benchmark-btn">
                     📊 Run Complexity Benchmarks
@@ -819,6 +843,7 @@
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
     <script>
         // Application state
         const state = {
@@ -831,6 +856,7 @@
                 disasterRoute: null,
                 blockedRoads: null,
                 disasterCircle: null,
+                heatmap: null,
                 markers: [],
                 visitedNodes: []
             },
@@ -1036,15 +1062,69 @@
                 state.map.removeLayer(state.layers.disasterCircle);
             }
 
-            const radius = parseInt(document.getElementById('radius-slider').value);
+            const radius = parseInt(document.getElementById('radius-slider').value) * 1000;
+            const type = document.getElementById('disaster-type').value;
+            const colors = { flood: '#3b82f6', fire: '#ef4444', earthquake: '#f59e0b' };
+
             state.layers.disasterCircle = L.circle([lat, lon], {
                 radius: radius,
-                color: '#ef4444',
-                fillColor: '#ef4444',
+                color: colors[type] || '#ef4444',
+                fillColor: colors[type] || '#ef4444',
                 fillOpacity: 0.2
             }).addTo(state.map);
 
             addMarker(lat, lon, '⚠️', 'Disaster Epicenter');
+
+            updateHeatmap();
+        }
+
+        // Fetch and draw continuous risk heatmap
+        async function updateHeatmap() {
+            if (!state.currentCity || !state.selection.epicenter || document.getElementById('disaster-type').value === 'none') {
+                if (state.layers.heatmap) {
+                    state.map.removeLayer(state.layers.heatmap);
+                    state.layers.heatmap = null;
+                }
+                return;
+            }
+
+            // Convert to km string for API
+            const radiusStr = document.getElementById('radius-slider').value;
+
+            const disaster = {
+                type: document.getElementById('disaster-type').value,
+                epicenter: state.selection.epicenter,
+                radius: radiusStr,
+                severity: document.getElementById('severity-slider').value
+            };
+
+            try {
+                const response = await fetch('/api/heatmap', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ city_key: state.currentCity, disaster: disaster })
+                });
+
+                const data = await response.json();
+
+                if (state.layers.heatmap) {
+                    state.map.removeLayer(state.layers.heatmap);
+                }
+
+                if (data.heatmap_data && data.heatmap_data.length > 0) {
+                    const heatPoints = data.heatmap_data.map(p => [p.lat, p.lng, p.intensity]);
+
+                    state.layers.heatmap = L.heatLayer(heatPoints, {
+                        radius: 25,
+                        blur: 35,
+                        maxZoom: 14,
+                        max: 1.0,
+                        gradient: { 0.4: '#10b981', 0.6: '#eab308', 1.0: '#ef4444' }
+                    }).addTo(state.map);
+                }
+            } catch (error) {
+                console.error('Heatmap error:', error);
+            }
         }
 
         // Add marker
@@ -1081,12 +1161,22 @@
             const algorithm = document.getElementById('algorithm-select').value;
             const compareAlgorithms = document.getElementById('compare-toggle').checked;
 
+            let kPaths = 3;
+            const kPathsSlider = document.getElementById('k-paths-slider');
+            if (kPathsSlider) kPaths = parseInt(kPathsSlider.value);
+
             const disaster = disasterType !== 'none' ? {
                 type: disasterType,
                 epicenter: state.selection.epicenter,
                 radius: parseInt(document.getElementById('radius-slider').value),
                 severity: parseFloat(document.getElementById('severity-slider').value)
             } : { type: 'none' };
+
+            const weights = {
+                alpha: parseFloat(document.getElementById('alpha-slider').value),
+                beta: parseFloat(document.getElementById('beta-slider').value),
+                gamma: parseFloat(document.getElementById('gamma-slider').value)
+            };
 
             try {
                 const response = await fetch('/api/compute_route', {
@@ -1097,8 +1187,10 @@
                         source_id: state.selection.source,
                         target_id: state.selection.target,
                         disaster: disaster,
+                        weights: weights,
                         animated: animated,
                         algorithm: algorithm,
+                        k_paths: kPaths,
                         compare_algorithms: compareAlgorithms
                     })
                 });
@@ -1128,6 +1220,7 @@
             if (state.layers.normalRoute) state.map.removeLayer(state.layers.normalRoute);
             if (state.layers.disasterRoute) state.map.removeLayer(state.layers.disasterRoute);
             if (state.layers.blockedRoads) state.map.removeLayer(state.layers.blockedRoads);
+            if (state.layers.heatmap) state.map.removeLayer(state.layers.heatmap);
 
             state.layers.visitedNodes.forEach(marker => state.map.removeLayer(marker));
             state.layers.visitedNodes = [];
@@ -1201,13 +1294,21 @@
 
         // Display results
         function displayResults(data) {
-            // Draw normal route (blue dashed)
-            state.layers.normalRoute = L.polyline(data.normal_route.path, {
-                color: '#3b82f6',
-                weight: 5,
-                opacity: 0.8,
-                dashArray: '10, 10'
-            }).addTo(state.map);
+            const normalColors = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#6366f1'];
+            const disasterColors = ['#10b981', '#059669', '#047857', '#064e3b', '#a3e635'];
+
+            // Draw normal routes (layered)
+            if (data.normal_routes && data.normal_routes.length > 0) {
+                const lines = data.normal_routes.map((route, i) => {
+                    return L.polyline(route.path, {
+                        color: normalColors[i % normalColors.length],
+                        weight: Math.max(2, 6 - i),
+                        opacity: Math.max(0.4, 0.8 - (i * 0.1)),
+                        dashArray: i === 0 ? '10, 10' : '5, 5'
+                    });
+                });
+                state.layers.normalRoute = L.layerGroup(lines).addTo(state.map);
+            }
 
             // Draw blocked roads
             if (data.blocked_edges && data.blocked_edges.length > 0) {
@@ -1221,20 +1322,23 @@
                 state.layers.blockedRoads = L.layerGroup(blockedLines).addTo(state.map);
             }
 
-            // Draw disaster route (green solid)
-            if (data.disaster_route) {
-                state.layers.disasterRoute = L.polyline(data.disaster_route.path, {
-                    color: '#10b981',
-                    weight: 5,
-                    opacity: 0.9
-                }).addTo(state.map);
+            // Draw disaster routes (layered)
+            if (data.disaster_routes && data.disaster_routes.length > 0) {
+                const dLines = data.disaster_routes.map((route, i) => {
+                    return L.polyline(route.path, {
+                        color: disasterColors[i % disasterColors.length],
+                        weight: Math.max(2, 6 - i),
+                        opacity: Math.max(0.5, 0.9 - (i * 0.1))
+                    });
+                });
+                state.layers.disasterRoute = L.layerGroup(dLines).addTo(state.map);
             }
 
             // Display metrics
             const metricsDiv = document.getElementById('metrics');
             let metricsHTML = `
                 <div class="metric-row">
-                    <span class="metric-label">Normal Route:</span>
+                    <span class="metric-label">Normal Route(s):</span>
                     <span class="metric-value">${data.normal_route.distance.toFixed(1)}m</span>
                 </div>
                 <div class="metric-row">
@@ -1246,6 +1350,14 @@
                     <span class="metric-value">${data.normal_route.nodes_visited}</span>
                 </div>
             `;
+
+            if (data.k_paths > 1 && data.algorithm === 'yen_k_shortest') {
+                metricsHTML += `
+                <div class="metric-row">
+                    <span class="metric-label">Total Routes Found:</span>
+                    <span class="metric-value">${data.normal_routes.length} / ${data.k_paths}</span>
+                </div>`;
+            }
 
             if (data.disaster_route) {
                 metricsHTML += `
@@ -1281,8 +1393,8 @@
             const container = document.getElementById('algo-comparison');
             section.style.display = 'block';
 
-            const algoNames = { dijkstra: 'Dijkstra', astar: 'A*', bellman_ford: 'Bellman-Ford' };
-            const algoComplexity = { dijkstra: 'O(E log V)', astar: 'O(E log V)', bellman_ford: 'O(VE)' };
+            const algoNames = { dijkstra: 'Dijkstra', astar: 'A*', bidirectional: 'Bidirectional D', bellman_ford: 'Bellman-Ford' };
+            const algoComplexity = { dijkstra: 'O(E log V)', astar: 'O(E log V)', bidirectional: 'O(b^(d/2))', bellman_ford: 'O(VE)' };
 
             // Find best values for highlighting
             const times = Object.values(comparison).map(c => c.time_ms);
@@ -1369,6 +1481,64 @@
             }
         }
 
+        // Simulate R(t) time-dependent disaster expansion
+        async function simulateTime() {
+            if (!state.selection.source || !state.selection.target || document.getElementById('disaster-type').value === 'none') {
+                alert('Please select source, target, and a disaster type first.');
+                return;
+            }
+
+            const btn = document.getElementById('simulate-time-btn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Simulating R(t)...';
+
+            // Save original values
+            const originalRadius = parseInt(document.getElementById('radius-slider').value);
+            const originalSeverity = parseFloat(document.getElementById('severity-slider').value);
+
+            try {
+                const timeSteps = 4;
+                const velocity = 5; // Radius increase per tick
+                const sevVelocity = 0.1; // Severity increase per tick
+
+                for (let t = 0; t <= timeSteps; t++) {
+                    const currentRadius = originalRadius + velocity * t;
+                    const currentSeverity = Math.min(1.0, originalSeverity + sevVelocity * t);
+
+                    // Update UI inputs
+                    document.getElementById('radius-slider').value = currentRadius;
+                    document.getElementById('radius-value').textContent = currentRadius;
+                    document.getElementById('severity-slider').value = currentSeverity.toFixed(1);
+                    document.getElementById('severity-value').textContent = currentSeverity.toFixed(1);
+
+                    if (state.selection.epicenter) {
+                        setEpicenter(state.selection.epicenter[0], state.selection.epicenter[1]); // redraws circle
+                    }
+
+                    // Recompute routes with new disaster state
+                    await computeRoutes();
+
+                    // Wait to allow viewer to see the reroute
+                    await sleep(2000);
+                }
+            } catch (error) {
+                console.error('Simulation error:', error);
+                alert('Simulation failed: ' + error.message);
+            } finally {
+                // Restore controls
+                document.getElementById('radius-slider').value = originalRadius;
+                document.getElementById('radius-value').textContent = originalRadius;
+                document.getElementById('severity-slider').value = originalSeverity.toFixed(1);
+                document.getElementById('severity-value').textContent = originalSeverity.toFixed(1);
+                if (state.selection.epicenter) {
+                    setEpicenter(state.selection.epicenter[0], state.selection.epicenter[1]);
+                }
+
+                btn.disabled = false;
+                btn.textContent = '⏱ Simulate R(t)';
+            }
+        }
+
         // Run benchmarks
         async function runBenchmarks() {
             const btn = document.getElementById('benchmark-btn');
@@ -1407,17 +1577,20 @@
             section.style.display = 'block';
 
             let html = '<h4 style="color:white; margin-bottom:12px;">📊 Empirical Complexity Analysis</h4>';
-            html += '<table class="algo-comparison-table">';
-            html += '<thead><tr><th>V</th><th>E</th><th>Dijkstra (ms)</th><th>A* (ms)</th><th>B-F (ms)</th></tr></thead><tbody>';
+            html += '<table class="algo-comparison-table" style="font-size: 11px;">';
+            html += '<thead><tr><th>V</th><th>E</th><th>Dijkstra<br>(ms)</th><th>A*<br>(ms)</th><th>Bi-Dijk<br>(ms)</th><th>B-F<br>(ms)</th><th>Yen k=3<br>(ms)</th></tr></thead><tbody>';
 
             for (const r of data.results) {
                 const bf = r.bellman_ford.avg_time_ms !== null ? r.bellman_ford.avg_time_ms.toFixed(2) : 'N/A';
+                const yen = r.yen_k_paths.avg_time_ms !== null ? r.yen_k_paths.avg_time_ms.toFixed(2) : 'N/A';
                 html += `<tr>
                     <td>${r.vertices}</td>
                     <td>${r.edges}</td>
                     <td>${r.dijkstra.avg_time_ms.toFixed(2)}</td>
                     <td>${r.astar.avg_time_ms.toFixed(2)}</td>
+                    <td>${r.bidirectional.avg_time_ms.toFixed(2)}</td>
                     <td>${bf}</td>
+                    <td>${yen}</td>
                 </tr>`;
             }
 
@@ -1489,22 +1662,62 @@
             if (state.layers.disasterCircle) {
                 state.map.removeLayer(state.layers.disasterCircle);
             }
+            updateHeatmap();
         });
 
-        document.getElementById('radius-slider').addEventListener('input', (e) => {
+        const radiusSlider = document.getElementById('radius-slider');
+        radiusSlider.addEventListener('input', (e) => {
             document.getElementById('radius-value').textContent = e.target.value;
             if (state.selection.epicenter) {
-                setEpicenter(state.selection.epicenter[0], state.selection.epicenter[1]);
+                // Update circle outline immediately without triggering expensive API requests too fast
+                const radius = parseInt(e.target.value) * 1000;
+                if (state.layers.disasterCircle) {
+                    state.layers.disasterCircle.setRadius(radius);
+                }
+            }
+        });
+        radiusSlider.addEventListener('change', () => {
+            if (state.selection.epicenter) updateHeatmap();
+        });
+
+        const severitySlider = document.getElementById('severity-slider');
+        severitySlider.addEventListener('input', (e) => {
+            document.getElementById('severity-value').textContent = e.target.value;
+        });
+        severitySlider.addEventListener('change', () => {
+            if (state.selection.epicenter) updateHeatmap();
+        });
+
+        document.getElementById('alpha-slider').addEventListener('input', (e) => {
+            document.getElementById('alpha-value').textContent = e.target.value;
+        });
+
+        document.getElementById('beta-slider').addEventListener('input', (e) => {
+            document.getElementById('beta-value').textContent = e.target.value;
+        });
+
+        document.getElementById('gamma-slider').addEventListener('input', (e) => {
+            document.getElementById('gamma-value').textContent = e.target.value;
+        });
+
+        document.getElementById('algorithm-select').addEventListener('change', (e) => {
+            const kPathsControl = document.getElementById('k-paths-control');
+            if (kPathsControl) {
+                kPathsControl.style.display = e.target.value === 'yen_k_shortest' ? 'block' : 'none';
             }
         });
 
-        document.getElementById('severity-slider').addEventListener('input', (e) => {
-            document.getElementById('severity-value').textContent = e.target.value;
-        });
+        const kSlider = document.getElementById('k-paths-slider');
+        if (kSlider) {
+            kSlider.addEventListener('input', (e) => {
+                document.getElementById('k-paths-value').textContent = e.target.value;
+            });
+        }
 
         document.getElementById('compute-btn').addEventListener('click', computeRoutes);
 
         document.getElementById('auto-demo-btn').addEventListener('click', autoDemo);
+        document.getElementById('simulate-time-btn').addEventListener('click', simulateTime);
         document.getElementById('benchmark-btn').addEventListener('click', runBenchmarks);
 
         document.getElementById('save-btn').addEventListener('click', () => {

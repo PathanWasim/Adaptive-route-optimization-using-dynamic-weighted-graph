@@ -17,7 +17,7 @@ import tempfile
 from hypothesis import given, strategies as st, assume, settings, HealthCheck
 from datetime import datetime
 from disaster_evacuation.visualization import VisualizationEngine
-from disaster_evacuation.graph import GraphManager
+from disaster_evacuation.models import GraphManager
 from disaster_evacuation.models import DisasterEvent, DisasterType, VertexType
 
 

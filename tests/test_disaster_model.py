@@ -3,8 +3,8 @@ Unit tests for DisasterModel class.
 """
 
 import pytest
-from disaster_evacuation.disaster import DisasterModel
-from disaster_evacuation.graph import GraphManager
+from disaster_evacuation.models import DisasterModel
+from disaster_evacuation.models import GraphManager
 from disaster_evacuation.models import DisasterEvent, DisasterType, VertexType
 
 
@@ -251,7 +251,7 @@ class TestDisasterModel:
         assert risk_penalty > 0
         
         # Should match WeightCalculator result
-        from disaster_evacuation.graph import WeightCalculator
+        from disaster_evacuation.models import WeightCalculator
         expected_penalty = WeightCalculator.calculate_risk_penalty(edge, disaster, edge_midpoint)
         assert abs(risk_penalty - expected_penalty) < 1e-10
     
@@ -264,6 +264,6 @@ class TestDisasterModel:
         is_blocked = self.disaster_model.is_road_blocked(edge, disaster, edge_midpoint)
         
         # Should match WeightCalculator result
-        from disaster_evacuation.graph import WeightCalculator
+        from disaster_evacuation.models import WeightCalculator
         expected_blocked = WeightCalculator.is_edge_blocked(edge, disaster, edge_midpoint)
         assert is_blocked == expected_blocked

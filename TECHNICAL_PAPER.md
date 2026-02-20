@@ -173,7 +173,7 @@ Where `type_factor` varies by disaster:
 
 ### 3.4 Design Decisions
 *   **Why Python/Flask?** Python offers rapid prototyping and excellent graph libraries (NetworkX, OSMnx). Flask provides a lightweight REST API wrapper.
-*   **Why Adjacency List?** Our road networks are **sparse graphs** ($E \approx 3V$). An adjacency matrix ($O(V^2)$) would be memory inefficient.
+*   **Why Adjacency List?** Our road networks are **sparse graphs** ($E \approx 3V$). An adjacency matrix requires $O(V^2)$ memory, which for a city like Berkeley ($V \approx 2000$) means 4,000,000 cells mostly filled with zeros. An adjacency list requires $O(V + E)$ memory, dramatically reducing the algorithmic footprint. Iterating over neighbors in an adjacency matrix takes $O(V)$ time, whereas an adjacency list takes $O(\text{deg}(v))$ time (typically 3-4 for road intersections), critically speeding up edge relaxation.
 *   **Why A*?** For evacuation, we need point-to-point routing. A* is the industry standard for this as it uses geographic knowledge to prune the search.
 *   **Why Leaflet?** Open-source, lightweight, and capable of rendering custom polylines without API costs compared to Google Maps.
 
@@ -238,13 +238,15 @@ To provide a comprehensive analysis, we extended the system with two additional 
 
 #### 4.3.1 A* Search Algorithm
 A* acts as an informed search, using a heuristic $h(n)$ to estimate the cost from node $n$ to the target.
-*   **Heuristic:** We used **Haversine Distance** (Great Circle Distance) as it is **admissible** (straight line $\le$ road distance) and **consistent**.
+*   **Heuristic:** We used **Haversine Distance** (Great Circle Distance).
+*   **Admissibility Proof:** A heuristic is admissible if $h(n) \le d(n, t)$ for all $n$. The Haversine formula calculates the exact shortest geographic distance between two points on a spherical Earth (a straight bird-flight line). Since road networks are constrained to Earth's surface and cannot possibly be shorter than a straight geographic line, $h_{haversine}(n) \le d_{road}(n, t)$ must always hold strictly true. Thus, the heuristic is admissible and A* is guaranteed to yield mathematically optimal paths.
 *   **Optimization:** By directing the search towards the target, A* avoids exploring nodes in the opposite direction.
 *   **Result:** Identical optimal paths to Dijkstra but with significantly fewer node visits.
 
 #### 4.3.2 Bellman-Ford Algorithm
 Implemented for comparative variation, Bellman-Ford relaxes all edges $|V|-1$ times.
 *   **Time Complexity:** $O(V \cdot E)$.
+*   **Dijkstra's Failure with Negative Edges:** Dijkstra's algorithm fundamentally relies on the greedy invariant that once a node is extracted from the min-heap, its shortest path is permanently finalized. If a negative edge exists, a subsequent relaxation could unexpectedly reduce a finalized node's distance behind the algorithm's execution front, breaking the dynamic programming invariant. Bellman-Ford averts this by iterating block-relaxations across all edges regardless of visitation state.
 *   **Use Case:** Capable of detecting negative weight cycles (though not present in road networks).
 *   **Performance:** Significantly slower than Dijkstra/A* but useful for validating the correctness of the greedy approach used by Dijkstra.
 
@@ -266,25 +268,31 @@ Implemented for comparative variation, Bellman-Ford relaxes all edges $|V|-1$ ti
 
 *Conclusion:* By induction, the invariant holds for all vertices, proving correctness.
 
-### 4.3 Complexity Analysis
+### 4.5 Complexity Derivations
 
-**Time Complexity:**
+**Dijkstra's Algorithm (Priority Queue):**
+- Initialization: $O(V)$
+- Main loop executes $V$ times. Each `extract_min` operation takes $O(\log V)$ time. Total for extraction: $O(V \log V)$.
+- Each of the $E$ edges is examined exactly once. In the worst case, relaxing an edge requires an update in the priority queue taking $O(\log V)$ time. Total for relaxations: $O(E \log V)$.
+- **Total:** $O((V + E) \log V) = O(E \log V)$ for connected graphs.
 
-- Initialization: O(V)
-- Main loop iterations: O(V)
-- Each vertex extracted once: O(V log V) with min-heap
-- Edge relaxations: O(E log V) total
-- **Total: O(E log V)**
+**A* Search:**
+- Theoretical worst-case complexity is identical to Dijkstra $O(E \log V)$. However, the effective branching factor is reduced due to the heuristic pruning the search space. 
 
-**Space Complexity:**
+**Bidirectional Dijkstra:**
+- Searches simultaneously from source and target. If branching factor is $b$ and optimal path length is $d$, standard Dijkstra explores $O(b^d)$ nodes. Bidirectional stops when the frontiers intersect at length $d/2$.
+- Search space: $O(b^{d/2} + b^{d/2}) = O(b^{d/2})$. This exponentially reduces the number of visited nodes.
 
-- Distance array: O(V)
-- Predecessor array: O(V)
-- Priority queue: O(V)
-- Visited set: O(V)
-- **Total: O(V)**
+**Yen's k-Shortest Paths:**
+- To find $k$ paths, Yen's algorithm iteratively blocks nodes/edges from the $(k-1)$th path and runs a shortest-path subroutine (Dijkstra) to find spur paths.
+- For each of the $k$ paths, it executes Dijkstra up to $V$ times (once per node in the previous path).
+- **Total:** $O(k \cdot V \cdot (E \log V))$.
 
-### 4.4 Algorithm Visualization
+**Bellman-Ford:**
+- Iterates through all $E$ edges exactly $V-1$ times. 
+- **Total:** $O(V \cdot E)$.
+
+### 4.6 Algorithm Visualization
 
 The system tracks algorithm execution for educational purposes:
 
@@ -529,7 +537,7 @@ The system serves multiple educational purposes:
 1. **Dynamic Algorithms**: Adapt to changing disaster conditions in real-time
 2. **Distributed Computation**: Scale to city-wide evacuation planning
 3. **Uncertainty Modeling**: Handle incomplete disaster information
-4. **Social Factors**: Account for human behavior during evacuations
+4. **NP-Hard Vehicle Routing Extensions**: Extending this system to coordinate a fleet of emergency vehicles (ambulances, firetrucks) visiting multiple disaster sites maps to the **Vehicle Routing Problem (VRP)**. VRP is strictly NP-hard. Future research could explore genetic algorithms or simulated annealing to approximate optimal emergency fleet dispatch routes on dynamically weighted graphs.
 
 ---
 

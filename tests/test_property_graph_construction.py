@@ -7,7 +7,7 @@ Feature: disaster-evacuation-routing, Property 2: Graph Construction Integrity
 
 import pytest
 from hypothesis import given, strategies as st, assume
-from disaster_evacuation.graph import GraphManager
+from disaster_evacuation.models import GraphManager
 from disaster_evacuation.models import VertexType
 
 

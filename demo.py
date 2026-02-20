@@ -15,8 +15,8 @@ import time
 import matplotlib.pyplot as plt
 from disaster_evacuation.osm.osm_extractor import OSMExtractor
 from disaster_evacuation.osm.graph_converter import GraphConverter
-from disaster_evacuation.disaster.disaster_modeler import DisasterModeler
-from disaster_evacuation.pathfinding.pathfinder_engine import PathfinderEngine
+from disaster_evacuation.models.disaster_modeler import DisasterModeler
+from disaster_evacuation.routing.dijkstra import PathfinderEngine
 from disaster_evacuation.visualization.map_visualizer import MapVisualizer
 
 

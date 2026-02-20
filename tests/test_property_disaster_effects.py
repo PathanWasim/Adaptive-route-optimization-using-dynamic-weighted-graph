@@ -7,8 +7,8 @@ Feature: disaster-evacuation-routing, Property 4: Disaster Effects Application
 
 import pytest
 from hypothesis import given, strategies as st, assume, settings, HealthCheck
-from disaster_evacuation.disaster import DisasterModel
-from disaster_evacuation.graph import GraphManager, WeightCalculator
+from disaster_evacuation.models import DisasterModel
+from disaster_evacuation.models import GraphManager, WeightCalculator
 from disaster_evacuation.models import DisasterEvent, DisasterType, VertexType
 
 

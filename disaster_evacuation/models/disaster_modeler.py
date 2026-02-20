@@ -8,7 +8,7 @@ using real geographic coordinates and distance calculations.
 import math
 import random
 from typing import Dict, Tuple
-from disaster_evacuation.graph.graph_manager import GraphManager
+from disaster_evacuation.models.graph import GraphManager
 
 
 class InvalidCoordinateError(Exception):

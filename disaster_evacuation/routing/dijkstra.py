@@ -9,7 +9,7 @@ import heapq
 import time
 from typing import Dict, List, Optional, Set, Tuple
 from ..models import PathResult, AlgorithmStats
-from ..graph import GraphManager
+from ..models import GraphManager
 
 
 class PathfinderEngine:
@@ -28,7 +28,9 @@ class PathfinderEngine:
         self._stats = AlgorithmStats()
     
     def find_shortest_path(self, graph: GraphManager, source: str, target: str, 
-                          track_steps: bool = False) -> PathResult:
+                          track_steps: bool = False,
+                          ignored_nodes: Set[str] = None,
+                          ignored_edges: Set[Tuple[str, str]] = None) -> PathResult:
         """
         Find the shortest path between two vertices using Dijkstra's algorithm.
         
@@ -37,6 +39,8 @@ class PathfinderEngine:
             source: Source vertex ID
             target: Target vertex ID
             track_steps: If True, track algorithm steps for visualization
+            ignored_nodes: Set of node IDs to ignore during pathfinding (for Yen's algorithm)
+            ignored_edges: Set of edge tuples (source, target) to ignore (for Yen's algorithm)
             
         Returns:
             PathResult containing the optimal path and metadata
@@ -48,22 +52,25 @@ class PathfinderEngine:
         self._stats.reset()
         start_time = time.time()
         
+        ignored_nodes = ignored_nodes or set()
+        ignored_edges = ignored_edges or set()
+        
         # Track algorithm steps for visualization
         algorithm_steps = [] if track_steps else None
         
         # Validate input
-        if not graph.has_vertex(source):
+        if not graph.has_vertex(source) or source in ignored_nodes:
             return PathResult(
                 path=[], total_cost=0.0, edges_traversed=[], 
                 computation_time=0.0, nodes_visited=0,
-                found=False, error_message=f"Source vertex '{source}' does not exist"
+                found=False, error_message=f"Source vertex '{source}' does not exist or is ignored"
             )
         
-        if not graph.has_vertex(target):
+        if not graph.has_vertex(target) or target in ignored_nodes:
             return PathResult(
                 path=[], total_cost=0.0, edges_traversed=[],
                 computation_time=0.0, nodes_visited=0,
-                found=False, error_message=f"Target vertex '{target}' does not exist"
+                found=False, error_message=f"Target vertex '{target}' does not exist or is ignored"
             )
         
         # Handle trivial case
@@ -134,8 +141,12 @@ class PathfinderEngine:
                 self._stats.edges_examined += 1
                 neighbor = edge.target
                 
-                # Skip if already visited
-                if neighbor in visited:
+                # Skip if already visited or ignored
+                if neighbor in visited or neighbor in ignored_nodes:
+                    continue
+                
+                # Skip if edge is ignored
+                if (current_vertex, neighbor) in ignored_edges:
                     continue
                 
                 # Calculate tentative distance

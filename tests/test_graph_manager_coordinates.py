@@ -6,7 +6,7 @@ for the coordinate storage methods.
 """
 
 import pytest
-from disaster_evacuation.graph.graph_manager import GraphManager
+from disaster_evacuation.models.graph import GraphManager
 from disaster_evacuation.models import VertexType
 
 

@@ -16,7 +16,7 @@ import shutil
 from pathlib import Path
 from hypothesis import given, strategies as st, settings, assume
 from disaster_evacuation.config import ConfigurationManager
-from disaster_evacuation.graph import GraphManager
+from disaster_evacuation.models import GraphManager
 from disaster_evacuation.models import VertexType, DisasterType
 
 

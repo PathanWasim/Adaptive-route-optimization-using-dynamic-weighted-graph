@@ -6,9 +6,9 @@ No OSM download required - instant loading!
 from flask import Flask, render_template, request, jsonify
 import json
 import time
-from disaster_evacuation.graph import GraphManager
-from disaster_evacuation.disaster.disaster_modeler import DisasterModeler
-from disaster_evacuation.pathfinding.pathfinder_engine import PathfinderEngine
+from disaster_evacuation.models import GraphManager
+from disaster_evacuation.models.disaster_modeler import DisasterModeler
+from disaster_evacuation.routing.dijkstra import PathfinderEngine
 
 app = Flask(__name__)
 

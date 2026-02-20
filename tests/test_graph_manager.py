@@ -3,7 +3,7 @@ Unit tests for GraphManager class.
 """
 
 import pytest
-from disaster_evacuation.graph import GraphManager
+from disaster_evacuation.models import GraphManager
 from disaster_evacuation.models import VertexType
 
 

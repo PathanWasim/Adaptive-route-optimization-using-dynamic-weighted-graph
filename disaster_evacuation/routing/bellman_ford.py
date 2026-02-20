@@ -14,7 +14,7 @@ Space Complexity: O(V)
 import time
 from typing import Dict, List, Optional, Set, Tuple
 from ..models import PathResult, AlgorithmStats
-from ..graph import GraphManager
+from ..models import GraphManager
 
 
 class BellmanFordEngine:

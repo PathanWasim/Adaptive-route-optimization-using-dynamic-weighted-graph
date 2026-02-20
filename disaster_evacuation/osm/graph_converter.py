@@ -7,7 +7,7 @@ adjacency list format while preserving all necessary geographic information.
 
 import networkx as nx
 from typing import Dict, Tuple
-from disaster_evacuation.graph.graph_manager import GraphManager
+from disaster_evacuation.models.graph import GraphManager
 from disaster_evacuation.models import VertexType
 
 

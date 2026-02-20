@@ -5,7 +5,7 @@ import json
 # Add current directory to path
 sys.path.append(os.getcwd())
 
-from disaster_evacuation.benchmarks.benchmark_runner import BenchmarkRunner
+from disaster_evacuation.analysis.benchmarks import BenchmarkRunner
 
 def main():
     print("Running pathfinding benchmarks...")

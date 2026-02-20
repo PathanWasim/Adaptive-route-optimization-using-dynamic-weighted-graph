@@ -9,8 +9,8 @@ import pytest
 from hypothesis import given, strategies as st, settings, assume, HealthCheck
 import networkx as nx
 from disaster_evacuation.osm.graph_converter import GraphConverter
-from disaster_evacuation.disaster.disaster_modeler import DisasterModeler
-from disaster_evacuation.pathfinding.pathfinder_engine import PathfinderEngine
+from disaster_evacuation.models.disaster_modeler import DisasterModeler
+from disaster_evacuation.routing.dijkstra import PathfinderEngine
 
 
 # Feature: osm-road-network-integration, Property 16: Route Divergence Under Disaster

@@ -7,7 +7,7 @@ and weight updates using Hypothesis for randomized testing.
 
 import pytest
 from hypothesis import given, strategies as st, settings, assume
-from disaster_evacuation.graph.graph_manager import GraphManager
+from disaster_evacuation.models.graph import GraphManager
 from disaster_evacuation.models import VertexType
 
 

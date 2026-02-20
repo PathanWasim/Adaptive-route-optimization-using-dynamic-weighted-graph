@@ -9,7 +9,7 @@ import pytest
 from hypothesis import given, strategies as st, settings, assume
 import networkx as nx
 from disaster_evacuation.osm.graph_converter import GraphConverter
-from disaster_evacuation.disaster.disaster_modeler import DisasterModeler
+from disaster_evacuation.models.disaster_modeler import DisasterModeler
 
 
 # Feature: osm-road-network-integration, Property 10: Distance-Based Disaster Impact

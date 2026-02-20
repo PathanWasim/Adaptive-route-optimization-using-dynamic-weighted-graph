@@ -7,8 +7,8 @@ Feature: disaster-evacuation-routing, Property 5: Blocked Road Handling
 
 import pytest
 from hypothesis import given, strategies as st, assume
-from disaster_evacuation.disaster import DisasterModel
-from disaster_evacuation.graph import GraphManager, WeightCalculator
+from disaster_evacuation.models import DisasterModel
+from disaster_evacuation.models import GraphManager, WeightCalculator
 from disaster_evacuation.models import DisasterEvent, DisasterType, VertexType
 
 

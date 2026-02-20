@@ -7,7 +7,7 @@ transformations to edge weights based on disaster type, location, and severity.
 
 from typing import List, Tuple
 from ..models import DisasterEvent, DisasterType
-from ..graph import GraphManager, WeightCalculator
+from ..models import GraphManager, WeightCalculator
 
 
 class DisasterModel:
@@ -25,9 +25,10 @@ class DisasterModel:
         """Initialize the disaster model."""
         self._active_disasters: List[DisasterEvent] = []
     
-    def apply_disaster_effects(self, graph: GraphManager, disaster: DisasterEvent) -> None:
+    def apply_disaster_effects(self, graph: GraphManager, disaster: DisasterEvent,
+                               alpha: float = 1.0, beta: float = 1.0, gamma: float = 1.0) -> None:
         """
-        Apply disaster effects to all edges in the graph.
+        Apply disaster effects to all edges in the graph, with optional routing weights.
         
         This method modifies edge weights based on the disaster's type, location,
         and severity. Edges closer to the disaster epicenter are affected more severely.
@@ -35,6 +36,9 @@ class DisasterModel:
         Args:
             graph: GraphManager instance to modify
             disaster: DisasterEvent to apply to the graph
+            alpha: Distance weight
+            beta: Risk weight
+            gamma: Congestion weight
             
         Raises:
             ValueError: If graph is empty or disaster parameters are invalid
@@ -49,39 +53,62 @@ class DisasterModel:
         if disaster not in self._active_disasters:
             self._active_disasters.append(disaster)
         
-        # Apply effects to all edges
+        # Apply effects
+        self.apply_objective_weights(graph, alpha, beta, gamma)
+            
+    def apply_objective_weights(self, graph: GraphManager, alpha: float = 1.0, 
+                                beta: float = 1.0, gamma: float = 1.0) -> None:
+        """
+        Force a recalculation of all graph edge weights using multi-objective parameters.
+        Applies currently active disasters automatically.
+        
+        Args:
+            graph: GraphManager instance to modify
+            alpha: Weight for distance objective
+            beta: Weight for risk objective
+            gamma: Weight for congestion objective
+        """
         all_edges = graph.get_all_edges()
         
+        # For simplicity, handle the most recent active disaster
+        active_disaster = self._active_disasters[-1] if self._active_disasters else None
+        
         for edge in all_edges:
-            # Get vertex coordinates for edge endpoints
             source_vertex = graph.get_vertex(edge.source)
             target_vertex = graph.get_vertex(edge.target)
             
             if source_vertex is None or target_vertex is None:
                 continue
-            
-            # Calculate edge midpoint
+                
             edge_midpoint = WeightCalculator.calculate_edge_midpoint(
                 source_vertex.coordinates, target_vertex.coordinates
             )
             
-            # Check if edge is affected by disaster
-            if disaster.is_point_affected(edge_midpoint):
+            # Reset blocked status to re-evaluate
+            edge.is_blocked = False
+            
+            if active_disaster and active_disaster.is_point_affected(edge_midpoint):
                 # Calculate new weight with disaster effects
                 new_weight = self._calculate_disaster_affected_weight(
-                    edge, disaster, edge_midpoint
+                    edge, active_disaster, edge_midpoint, alpha, beta, gamma
                 )
                 
                 # Check if edge should be blocked
-                if WeightCalculator.is_edge_blocked(edge, disaster, edge_midpoint):
+                if WeightCalculator.is_edge_blocked(edge, active_disaster, edge_midpoint):
                     edge.is_blocked = True
                     new_weight = float('inf')  # Infinite weight for blocked roads
-                
-                # Update edge weight in graph
-                graph.update_edge_weight(edge.source, edge.target, new_weight)
+            else:
+                # No disaster effect on this edge
+                new_weight = WeightCalculator.calculate_dynamic_weight(
+                    edge, alpha=alpha, beta=beta, gamma=gamma
+                )
+            
+            # Update edge weight in graph
+            graph.update_edge_weight(edge.source, edge.target, new_weight)
     
     def _calculate_disaster_affected_weight(self, edge, disaster: DisasterEvent, 
-                                          edge_midpoint: Tuple[float, float]) -> float:
+                                          edge_midpoint: Tuple[float, float],
+                                          alpha: float = 1.0, beta: float = 1.0, gamma: float = 1.0) -> float:
         """
         Calculate the new weight for an edge affected by disaster.
         
@@ -89,13 +116,17 @@ class DisasterModel:
             edge: Edge to calculate weight for
             disaster: DisasterEvent affecting the edge
             edge_midpoint: Midpoint coordinates of the edge
+            alpha: Distance weight
+            beta: Risk weight
+            gamma: Congestion weight
             
         Returns:
             New weight incorporating disaster effects
         """
         # Use WeightCalculator for consistent weight calculation
         return WeightCalculator.calculate_dynamic_weight(
-            edge, disaster, edge_midpoint, self._get_traffic_multiplier(disaster)
+            edge, disaster, edge_midpoint, self._get_traffic_multiplier(disaster),
+            alpha, beta, gamma
         )
     
     def _get_traffic_multiplier(self, disaster: DisasterEvent) -> float:

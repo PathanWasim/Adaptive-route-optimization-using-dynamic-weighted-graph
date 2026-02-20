@@ -12,7 +12,7 @@ import pytest
 from hypothesis import given, strategies as st, assume, settings, HealthCheck
 from datetime import datetime, timedelta
 from disaster_evacuation.controller import RouteController
-from disaster_evacuation.graph import GraphManager
+from disaster_evacuation.models import GraphManager
 from disaster_evacuation.models import DisasterEvent, DisasterType, VertexType
 
 

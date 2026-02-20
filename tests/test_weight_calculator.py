@@ -3,7 +3,7 @@ Unit tests for WeightCalculator class.
 """
 
 import pytest
-from disaster_evacuation.graph import WeightCalculator
+from disaster_evacuation.models import WeightCalculator
 from disaster_evacuation.models import Edge, DisasterEvent, DisasterType
 from datetime import datetime
 

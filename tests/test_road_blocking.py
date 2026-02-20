@@ -3,8 +3,8 @@ Specific tests for road blocking and infinite weight handling.
 """
 
 import pytest
-from disaster_evacuation.disaster import DisasterModel
-from disaster_evacuation.graph import GraphManager, WeightCalculator
+from disaster_evacuation.models import DisasterModel
+from disaster_evacuation.models import GraphManager, WeightCalculator
 from disaster_evacuation.models import DisasterEvent, DisasterType, VertexType
 
 

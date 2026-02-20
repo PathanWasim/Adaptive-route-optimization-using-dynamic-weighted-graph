@@ -17,7 +17,7 @@ from typing import Dict, List, Optional, Any, Tuple
 from datetime import datetime
 from pathlib import Path
 from ..models import Vertex, Edge, DisasterEvent, DisasterType, VertexType
-from ..graph import GraphManager
+from ..models import GraphManager
 
 
 # Configure logging

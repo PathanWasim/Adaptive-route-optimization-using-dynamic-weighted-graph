@@ -1,0 +1,379 @@
+============================= test session starts =============================
+platform win32 -- Python 3.10.0, pytest-8.4.2, pluggy-1.6.0
+rootdir: E:\Major Projects\DAA CP
+plugins: anyio-4.11.0, hypothesis-6.99.13, cov-7.0.0
+collected 381 items
+
+tests\test_analysis_engine.py ...............                            [  3%]
+tests\test_configuration_error_handling.py ................              [  8%]
+tests\test_configuration_manager.py ...................                  [ 13%]
+tests\test_disaster_model.py ...............                             [ 17%]
+tests\test_disaster_modeler.py .............                             [ 20%]
+tests\test_graph_converter.py ..............                             [ 24%]
+tests\test_graph_manager.py ...............                              [ 28%]
+tests\test_graph_manager_coordinates.py ........                         [ 30%]
+tests\test_integration.py ...                                            [ 30%]
+tests\test_map_visualizer.py ..........                                  [ 33%]
+tests\test_models.py ................                                    [ 37%]
+tests\test_osm_extractor.py ...F..sss                                    [ 40%]
+tests\test_path_recomputation.py .........                               [ 42%]
+tests\test_pathfinder_engine.py ................                         [ 46%]
+tests\test_property_blocked_roads.py .......                             [ 48%]
+tests\test_property_comparative_analysis.py ...                          [ 49%]
+tests\test_property_configuration_effects.py ........                    [ 51%]
+tests\test_property_configuration_persistence.py ........                [ 53%]
+tests\test_property_data_import_validation.py ........                   [ 55%]
+tests\test_property_dijkstra_optimality.py .......                       [ 57%]
+tests\test_property_disaster_effects.py .......                          [ 59%]
+tests\test_property_disaster_modeler.py ....                             [ 60%]
+tests\test_property_disconnected_graphs.py ......                        [ 61%]
+tests\test_property_graph_construction.py .....                          [ 63%]
+tests\test_property_graph_conversion.py ......                           [ 64%]
+tests\test_property_graph_manager.py ..                                  [ 65%]
+tests\test_property_input_validation.py .............                    [ 68%]
+tests\test_property_osm_extraction.py F..                                [ 69%]
+tests\test_property_output_completeness.py .........                     [ 71%]
+tests\test_property_path_recomputation.py ......                         [ 73%]
+tests\test_property_route_divergence.py .                                [ 73%]
+tests\test_property_visualization.py .                                   [ 74%]
+tests\test_property_visualization_consistency.py .....F......            [ 77%]
+tests\test_property_weight_calculation.py .........                      [ 79%]
+tests\test_road_blocking.py ............                                 [ 82%]
+tests\test_route_controller.py ........................                  [ 88%]
+tests\test_visualization_engine.py ............................          [ 96%]
+tests\test_weight_calculator.py .FFF...F......                           [100%]
+
+================================== FAILURES ===================================
+_________________ TestOSMExtractor.test_area_too_large_error __________________
+
+self = <tests.test_osm_extractor.TestOSMExtractor object at 0x000001A2CB8F08B0>
+
+    def test_area_too_large_error(self):
+        """Test that large areas raise AreaTooLargeError."""
+        extractor = OSMExtractor()
+    
+        # Create a large graph (simulate > 3 km²)
+        G = nx.MultiDiGraph()
+    
+        # Add nodes in a large grid
+        for i in range(20):
+            for j in range(20):
+                node_id = i * 20 + j
+                # Large spacing to create big area
+                G.add_node(node_id, x=-122.0 + j * 0.01, y=37.8 + i * 0.01)
+    
+        # Add edges
+        for i in range(19):
+            for j in range(19):
+                node_id = i * 20 + j
+                G.add_edge(node_id, node_id + 1, length=1000.0)
+                G.add_edge(node_id, node_id + 20, length=1000.0)
+    
+        # Mark as projected for area calculation
+        G.graph['crs'] = 'EPSG:32610'  # UTM zone 10N
+    
+>       with pytest.raises(AreaTooLargeError) as exc_info:
+E       Failed: DID NOT RAISE <class 'disaster_evacuation.osm.osm_extractor.AreaTooLargeError'>
+
+tests\test_osm_extractor.py:83: Failed
+_________________________ test_area_bounds_validation _________________________
+
+    @given(
+>       num_nodes=st.integers(min_value=10, max_value=100),
+        area_multiplier=st.floats(min_value=0.5, max_value=4.0)
+    )
+
+tests\test_property_osm_extraction.py:16: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+num_nodes = 16, area_multiplier = 1.0
+
+    @given(
+        num_nodes=st.integers(min_value=10, max_value=100),
+        area_multiplier=st.floats(min_value=0.5, max_value=4.0)
+    )
+    @settings(max_examples=100, deadline=None)
+    def test_area_bounds_validation(num_nodes, area_multiplier):
+        """
+        For any extracted road network, the geographic area covered should be
+        between 1 km² and 3 km².
+    
+        Validates: Requirements 1.2
+        """
+        # Create a mock OSM graph with controlled area
+        G = nx.MultiDiGraph()
+    
+        # Add nodes in a grid pattern with spacing that controls area
+        # Spacing of ~0.01 degrees \u2248 1km, so we can control area
+        spacing = 0.001 * area_multiplier
+        grid_size = int(num_nodes ** 0.5)
+    
+        for i in range(grid_size):
+            for j in range(grid_size):
+                node_id = i * grid_size + j
+                G.add_node(node_id, x=-122.0 + j * spacing, y=37.8 + i * spacing)
+    
+        # Add some edges
+        for i in range(grid_size - 1):
+            for j in range(grid_size - 1):
+                node_id = i * grid_size + j
+                G.add_edge(node_id, node_id + 1, length=100.0)
+                G.add_edge(node_id, node_id + grid_size, length=100.0)
+    
+        # Skip if graph is empty
+        assume(G.number_of_edges() > 0)
+    
+        extractor = OSMExtractor()
+        stats = extractor.get_network_stats(G)
+    
+        # If area is too large, validation should catch it
+        if stats['area_km2'] > 3.0:
+>           with pytest.raises(AreaTooLargeError):
+E           Failed: DID NOT RAISE <class 'disaster_evacuation.osm.osm_extractor.AreaTooLargeError'>
+E           Falsifying example: test_area_bounds_validation(
+E               num_nodes=16,
+E               area_multiplier=1.0,
+E           )
+E           Explanation:
+E               These lines were always and only run by failing examples:
+E                   E:\Major Projects\DAA CP\tests\test_property_osm_extraction.py:55
+
+tests\test_property_osm_extraction.py:55: Failed
+____ TestPropertyVisualizationConsistency.test_property_title_consistency _____
+  + Exception Group Traceback (most recent call last):
+  |   File "E:\Major Projects\DAA CP\tests\test_property_visualization_consistency.py", line 259, in test_property_title_consistency
+  |     @settings(suppress_health_check=[HealthCheck.function_scoped_fixture, HealthCheck.filter_too_much], deadline=1000)
+  |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\hypothesis\core.py", line 1638, in wrapped_test
+  |     raise the_error_hypothesis_found
+  | exceptiongroup.ExceptionGroup: Hypothesis found 2 distinct failures. (2 sub-exceptions)
+  +-+---------------- 1 ----------------
+    | Traceback (most recent call last):
+    |   File "E:\Major Projects\DAA CP\tests\test_property_visualization_consistency.py", line 275, in test_property_title_consistency
+    |     fig = viz_engine.visualize_graph(graph, title=title)
+    |   File "E:\Major Projects\DAA CP\disaster_evacuation\visualization\visualization_engine.py", line 97, in visualize_graph
+    |     plt.tight_layout()
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\pyplot.py", line 2843, in tight_layout
+    |     gcf().tight_layout(pad=pad, h_pad=h_pad, w_pad=w_pad, rect=rect)
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\figure.py", line 3640, in tight_layout
+    |     engine.execute(self)
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\layout_engine.py", line 188, in execute
+    |     kwargs = get_tight_layout_figure(
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\_tight_layout.py", line 266, in get_tight_layout_figure
+    |     kwargs = _auto_adjust_subplotpars(fig, renderer,
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\_tight_layout.py", line 82, in _auto_adjust_subplotpars
+    |     bb += [martist._get_tightbbox_for_layout_only(ax, renderer)]
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\artist.py", line 1402, in _get_tightbbox_for_layout_only
+    |     return obj.get_tightbbox(*args, **{**kwargs, "for_layout_only": True})
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\axes\_base.py", line 4567, in get_tightbbox
+    |     self._update_title_position(renderer)
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\axes\_base.py", line 3144, in _update_title_position
+    |     if title.get_window_extent(renderer).ymin < top:
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\text.py", line 969, in get_window_extent
+    |     bbox, info, descent = self._get_layout(self._renderer)
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\text.py", line 382, in _get_layout
+    |     w, h, d = _get_text_metrics_with_cache(
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\text.py", line 69, in _get_text_metrics_with_cache
+    |     return _get_text_metrics_with_cache_impl(
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\text.py", line 77, in _get_text_metrics_with_cache_impl
+    |     return renderer_ref().get_text_width_height_descent(text, fontprop, ismath)
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\backends\backend_agg.py", line 215, in get_text_width_height_descent
+    |     self.mathtext_parser.parse(s, self.dpi, prop)
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\mathtext.py", line 86, in parse
+    |     return self._parse_cached(s, dpi, prop, antialiased, load_glyph_flags)
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\mathtext.py", line 100, in _parse_cached
+    |     box = self._parser.parse(s, fontset, fontsize, dpi)
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\_mathtext.py", line 2167, in parse
+    |     raise ValueError("\n" + ParseException.explain(err, 0)) from None
+    | ValueError: 
+    | \A
+    | ^
+    | ParseFatalException: Unknown symbol: \A, found '\'  (at char 0), (line:1, col:1)
+    | Falsifying example: test_property_title_consistency(
+    |     self=<tests.test_property_visualization_consistency.TestPropertyVisualizationConsistency object at 0x000001A2CBADC550>,
+    |     title='$\\A$',
+    | )
+    | Explanation:
+    |     These lines were always and only run by failing examples:
+    |         C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\_mathtext.py:2306
+    |         C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\pyparsing\core.py:1311
+    |         C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\pyparsing\core.py:2736
+    |         C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\pyparsing\core.py:305
+    |         C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\pyparsing\core.py:4757
+    |         C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\pyparsing\core.py:5596
+    +---------------- 2 ----------------
+    | Traceback (most recent call last):
+    |   File "E:\Major Projects\DAA CP\tests\test_property_visualization_consistency.py", line 275, in test_property_title_consistency
+    |     fig = viz_engine.visualize_graph(graph, title=title)
+    |   File "E:\Major Projects\DAA CP\disaster_evacuation\visualization\visualization_engine.py", line 97, in visualize_graph
+    |     plt.tight_layout()
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\pyplot.py", line 2843, in tight_layout
+    |     gcf().tight_layout(pad=pad, h_pad=h_pad, w_pad=w_pad, rect=rect)
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\figure.py", line 3640, in tight_layout
+    |     engine.execute(self)
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\layout_engine.py", line 188, in execute
+    |     kwargs = get_tight_layout_figure(
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\_tight_layout.py", line 266, in get_tight_layout_figure
+    |     kwargs = _auto_adjust_subplotpars(fig, renderer,
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\_tight_layout.py", line 82, in _auto_adjust_subplotpars
+    |     bb += [martist._get_tightbbox_for_layout_only(ax, renderer)]
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\artist.py", line 1402, in _get_tightbbox_for_layout_only
+    |     return obj.get_tightbbox(*args, **{**kwargs, "for_layout_only": True})
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\axes\_base.py", line 4567, in get_tightbbox
+    |     self._update_title_position(renderer)
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\axes\_base.py", line 3144, in _update_title_position
+    |     if title.get_window_extent(renderer).ymin < top:
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\text.py", line 969, in get_window_extent
+    |     bbox, info, descent = self._get_layout(self._renderer)
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\text.py", line 382, in _get_layout
+    |     w, h, d = _get_text_metrics_with_cache(
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\text.py", line 69, in _get_text_metrics_with_cache
+    |     return _get_text_metrics_with_cache_impl(
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\text.py", line 77, in _get_text_metrics_with_cache_impl
+    |     return renderer_ref().get_text_width_height_descent(text, fontprop, ismath)
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\backends\backend_agg.py", line 215, in get_text_width_height_descent
+    |     self.mathtext_parser.parse(s, self.dpi, prop)
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\mathtext.py", line 86, in parse
+    |     return self._parse_cached(s, dpi, prop, antialiased, load_glyph_flags)
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\mathtext.py", line 100, in _parse_cached
+    |     box = self._parser.parse(s, fontset, fontsize, dpi)
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\_mathtext.py", line 2167, in parse
+    |     raise ValueError("\n" + ParseException.explain(err, 0)) from None
+    | ValueError: 
+    | $$
+    | ^
+    | ParseException: Expected end of text, found '$'  (at char 0), (line:1, col:1)
+    | Falsifying example: test_property_title_consistency(
+    |     self=<tests.test_property_visualization_consistency.TestPropertyVisualizationConsistency object at 0x000001A2CBADC550>,
+    |     title='$$',
+    | )
+    | Explanation:
+    |     These lines were always and only run by failing examples:
+    |         C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\pyparsing\core.py:1311
+    |         C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\pyparsing\core.py:4089
+    |         C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\pyparsing\core.py:5596
+    +------------------------------------
+___________ TestWeightCalculator.test_calculate_risk_penalty_flood ____________
+
+self = <tests.test_weight_calculator.TestWeightCalculator object at 0x000001A2CBB2B7F0>
+
+    def test_calculate_risk_penalty_flood(self):
+        """Test risk penalty calculation for flood disaster."""
+        edge = Edge("A", "B", 1.0, 0.5, 0.2)
+        disaster = DisasterEvent(DisasterType.FLOOD, (0.0, 0.0), 0.8, 10.0)
+        edge_midpoint = (2.0, 0.0)  # Distance = 2.0 from epicenter
+    
+        risk_penalty = WeightCalculator.calculate_risk_penalty(edge, disaster, edge_midpoint)
+    
+        # Expected calculation:
+        # proximity_factor = max(0, 1 - 2.0/10.0) = 0.8
+        # disaster_multiplier = 2.0 (flood)
+        # risk_penalty = 0.5 * 2.0 * 0.8 * 0.8 = 0.64
+        expected = 0.5 * 2.0 * 0.8 * 0.8
+>       assert abs(risk_penalty - expected) < 1e-10
+E       assert 9.600000000000001 < 1e-10
+E        +  where 9.600000000000001 = abs((10.240000000000002 - 0.6400000000000001))
+
+tests\test_weight_calculator.py:33: AssertionError
+____________ TestWeightCalculator.test_calculate_risk_penalty_fire ____________
+
+self = <tests.test_weight_calculator.TestWeightCalculator object at 0x000001A2CBB2B970>
+
+    def test_calculate_risk_penalty_fire(self):
+        """Test risk penalty calculation for fire disaster."""
+        edge = Edge("A", "B", 1.0, 0.3, 0.2)
+        disaster = DisasterEvent(DisasterType.FIRE, (0.0, 0.0), 0.6, 5.0)
+        edge_midpoint = (1.0, 0.0)  # Distance = 1.0 from epicenter
+    
+        risk_penalty = WeightCalculator.calculate_risk_penalty(edge, disaster, edge_midpoint)
+    
+        # Expected calculation:
+        # proximity_factor = max(0, 1 - 1.0/5.0) = 0.8
+        # disaster_multiplier = 3.0 (fire)
+        # risk_penalty = 0.3 * 3.0 * 0.8 * 0.6 = 0.432
+        expected = 0.3 * 3.0 * 0.8 * 0.6
+>       assert abs(risk_penalty - expected) < 1e-10
+E       assert 11.088000000000001 < 1e-10
+E        +  where 11.088000000000001 = abs((11.520000000000001 - 0.432))
+
+tests\test_weight_calculator.py:48: AssertionError
+_________ TestWeightCalculator.test_calculate_risk_penalty_earthquake _________
+
+self = <tests.test_weight_calculator.TestWeightCalculator object at 0x000001A2CBB2BAF0>
+
+    def test_calculate_risk_penalty_earthquake(self):
+        """Test risk penalty calculation for earthquake disaster."""
+        edge = Edge("A", "B", 1.0, 0.4, 0.2)
+        disaster = DisasterEvent(DisasterType.EARTHQUAKE, (0.0, 0.0), 0.9, 8.0)
+        edge_midpoint = (3.0, 4.0)  # Distance = 5.0 from epicenter
+    
+        risk_penalty = WeightCalculator.calculate_risk_penalty(edge, disaster, edge_midpoint)
+    
+        # Expected calculation:
+        # proximity_factor = max(0, 1 - 5.0/8.0) = 0.375
+        # disaster_multiplier = 2.5 (earthquake)
+        # risk_penalty = 0.4 * 2.5 * 0.375 * 0.9 = 0.3375
+        expected = 0.4 * 2.5 * 0.375 * 0.9
+>       assert abs(risk_penalty - expected) < 1e-10
+E       assert 2.8265625 < 1e-10
+E        +  where 2.8265625 = abs((3.1640625 - 0.3375))
+
+tests\test_weight_calculator.py:63: AssertionError
+______ TestWeightCalculator.test_calculate_dynamic_weight_with_disaster _______
+
+self = <tests.test_weight_calculator.TestWeightCalculator object at 0x000001A2CBB2AF20>
+
+    def test_calculate_dynamic_weight_with_disaster(self):
+        """Test dynamic weight calculation with disaster effects."""
+        edge = Edge("A", "B", 1.0, 0.2, 0.1)
+        disaster = DisasterEvent(DisasterType.FLOOD, (0.0, 0.0), 0.5, 10.0)
+        edge_midpoint = (5.0, 0.0)  # Distance = 5.0 from epicenter
+    
+        weight = WeightCalculator.calculate_dynamic_weight(edge, disaster, edge_midpoint)
+    
+        # Expected calculation:
+        # base_distance = 1.0
+        # proximity_factor = max(0, 1 - 5.0/10.0) = 0.5
+        # risk_penalty = 0.2 * 2.0 * 0.5 * 0.5 = 0.1
+        # congestion_penalty = 0.1 * 1.0 = 0.1
+        # total = 1.0 + 0.1 + 0.1 = 1.2
+        expected = 1.0 + (0.2 * 2.0 * 0.5 * 0.5) + 0.1
+>       assert abs(weight - expected) < 1e-10
+E       assert 2.4 < 1e-10
+E        +  where 2.4 = abs((3.6 - 1.2000000000000002))
+
+tests\test_weight_calculator.py:114: AssertionError
+============================== warnings summary ===============================
+tests\test_osm_extractor.py:133
+  E:\Major Projects\DAA CP\tests\test_osm_extractor.py:133: PytestUnknownMarkWarning: Unknown pytest.mark.slow - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.slow
+
+tests\test_osm_extractor.py:151
+  E:\Major Projects\DAA CP\tests\test_osm_extractor.py:151: PytestUnknownMarkWarning: Unknown pytest.mark.slow - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.slow
+
+tests\test_osm_extractor.py:160
+  E:\Major Projects\DAA CP\tests\test_osm_extractor.py:160: PytestUnknownMarkWarning: Unknown pytest.mark.slow - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.slow
+
+tests/test_integration.py::test_full_workflow_integration
+  E:\Major Projects\DAA CP\disaster_evacuation\visualization\map_visualizer.py:119: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
+    plt.show()
+
+tests/test_integration.py::test_full_workflow_integration
+  E:\Major Projects\DAA CP\disaster_evacuation\visualization\map_visualizer.py:253: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
+    plt.show()
+
+tests/test_property_visualization_consistency.py::TestPropertyVisualizationConsistency::test_property_title_consistency
+  E:\Major Projects\DAA CP\disaster_evacuation\visualization\visualization_engine.py:67: RuntimeWarning: More than 20 figures have been opened. Figures created through the pyplot interface (`matplotlib.pyplot.figure`) are retained until explicitly closed and may consume too much memory. (To control this warning, see the rcParam `figure.max_open_warning`). Consider using `matplotlib.pyplot.close()`.
+    fig, ax = plt.subplots(figsize=self.figsize)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_osm_extractor.py::TestOSMExtractor::test_area_too_large_error
+FAILED tests/test_property_osm_extraction.py::test_area_bounds_validation - F...
+FAILED tests/test_property_visualization_consistency.py::TestPropertyVisualizationConsistency::test_property_title_consistency
+FAILED tests/test_weight_calculator.py::TestWeightCalculator::test_calculate_risk_penalty_flood
+FAILED tests/test_weight_calculator.py::TestWeightCalculator::test_calculate_risk_penalty_fire
+FAILED tests/test_weight_calculator.py::TestWeightCalculator::test_calculate_risk_penalty_earthquake
+FAILED tests/test_weight_calculator.py::TestWeightCalculator::test_calculate_dynamic_weight_with_disaster
+====== 7 failed, 371 passed, 3 skipped, 6 warnings in 323.45s (0:05:23) =======

@@ -10,7 +10,7 @@ import os
 import tempfile
 from datetime import datetime
 from disaster_evacuation.visualization import VisualizationEngine
-from disaster_evacuation.graph import GraphManager
+from disaster_evacuation.models import GraphManager
 from disaster_evacuation.models import DisasterEvent, DisasterType, VertexType
 
 

@@ -7,7 +7,7 @@ using matplotlib with actual latitude/longitude coordinates.
 
 import matplotlib.pyplot as plt
 from typing import Dict, List, Tuple, Optional
-from disaster_evacuation.graph.graph_manager import GraphManager
+from disaster_evacuation.models.graph import GraphManager
 
 
 class InvalidNodeError(Exception):

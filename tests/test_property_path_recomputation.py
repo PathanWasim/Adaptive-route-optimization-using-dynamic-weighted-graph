@@ -7,9 +7,9 @@ Feature: disaster-evacuation-routing, Property 6: Path Recomputation
 
 import pytest
 from hypothesis import given, strategies as st, assume
-from disaster_evacuation.pathfinding import PathfinderEngine
-from disaster_evacuation.graph import GraphManager
-from disaster_evacuation.disaster import DisasterModel
+from disaster_evacuation.routing import PathfinderEngine
+from disaster_evacuation.models import GraphManager
+from disaster_evacuation.models import DisasterModel
 from disaster_evacuation.models import VertexType, DisasterEvent, DisasterType
 
 

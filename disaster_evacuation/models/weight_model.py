@@ -76,26 +76,35 @@ class WeightCalculator:
     @staticmethod
     def calculate_dynamic_weight(edge: Edge, disaster: DisasterEvent = None, 
                                edge_midpoint: Tuple[float, float] = None,
-                               traffic_multiplier: float = 1.0) -> float:
+                               traffic_multiplier: float = 1.0,
+                               alpha: float = 1.0,
+                               beta: float = 1.0,
+                               gamma: float = 1.0) -> float:
         """
-        Calculate the dynamic weight of an edge considering all factors.
+        Calculate the dynamic weight of an edge using multi-objective scalarization.
+        
+        Uses the mathematical model W(e) = α·distance + β·risk + γ·congestion
         
         Args:
             edge: Edge to calculate weight for
             disaster: Optional disaster event affecting the area
             edge_midpoint: Midpoint coordinates of the edge (required if disaster provided)
             traffic_multiplier: Multiplier for traffic conditions
+            alpha: User weight for the distance objective
+            beta: User weight for the risk objective
+            gamma: User weight for the congestion objective
             
         Returns:
-            Dynamic weight = distance + risk_penalty + congestion_penalty
+            Dynamic weight = α * distance + β * risk + γ * congestion
             
         Raises:
             ValueError: If disaster is provided but edge_midpoint is not
         """
-        # Start with base distance
-        weight = edge.base_distance
+        # Distance component
+        distance_val = edge.base_distance
         
-        # Add risk penalty
+        # Risk component
+        risk_val = edge.base_risk
         if disaster is not None:
             if edge_midpoint is None:
                 raise ValueError("Edge midpoint required when disaster is provided")
@@ -103,26 +112,23 @@ class WeightCalculator:
             distance_to_epicenter = disaster.distance_to_point(edge_midpoint)
             
             # Calculate proximity factor (1.0 at epicenter, 0.0 at max radius)
-            # We use a power curve to make the gradient steeper near the center
             proximity_factor = max(0.0, 1.0 - distance_to_epicenter / disaster.max_effect_radius)
             proximity_factor = proximity_factor ** 2  # Experiential penalty
             
-            # Get disaster-specific multiplier (Fire=10, Flood=5, etc.)
+            # Get disaster-specific multiplier
             disaster_multiplier = disaster.get_disaster_multiplier()
             
-            # Calculate risk multiplier
-            # Formula: 1.0 + (Severity * Proximity * TypeMultiplier * 10)
-            # Example: Fire(10) * Sev(0.8) * Prox(1.0) * 10 = 80x weight penalty
+            # Calculate risk factor
             risk_factor = disaster.severity * proximity_factor * disaster_multiplier * 10.0
             
-            # Apply multiplicative penalty
-            weight *= (1.0 + risk_factor)
-        else:
-            weight += edge.base_risk
+            # Scale risk by edge length so long roads through disaster zones are penalized more
+            risk_val = distance_val * risk_factor
         
-        # Add congestion penalty
-        congestion_penalty = WeightCalculator.calculate_congestion_penalty(edge, traffic_multiplier)
-        weight += congestion_penalty
+        # Congestion component
+        congestion_val = WeightCalculator.calculate_congestion_penalty(edge, traffic_multiplier)
+        
+        # Multi-objective scalarization formula: W = α*d + β*r + γ*c
+        weight = (alpha * distance_val) + (beta * risk_val) + (gamma * congestion_val)
         
         return weight
     

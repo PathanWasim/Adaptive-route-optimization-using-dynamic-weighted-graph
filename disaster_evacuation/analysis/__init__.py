@@ -6,5 +6,6 @@ different routing strategies and their trade-offs.
 """
 
 from .analysis_engine import AnalysisEngine
+from .benchmarks import BenchmarkRunner
 
-__all__ = ['AnalysisEngine']
+__all__ = ['AnalysisEngine', 'BenchmarkRunner']
