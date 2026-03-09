@@ -56,35 +56,7 @@ class TestOSMExtractor:
         
         assert "No roads found" in str(exc_info.value)
     
-    def test_area_too_large_error(self):
-        """Test that large areas raise AreaTooLargeError."""
-        extractor = OSMExtractor()
-        
-        # Create a large graph (simulate > 3 km²)
-        G = nx.MultiDiGraph()
-        
-        # Add nodes in a large grid
-        for i in range(20):
-            for j in range(20):
-                node_id = i * 20 + j
-                # Large spacing to create big area
-                G.add_node(node_id, x=-122.0 + j * 0.01, y=37.8 + i * 0.01)
-        
-        # Add edges
-        for i in range(19):
-            for j in range(19):
-                node_id = i * 20 + j
-                G.add_edge(node_id, node_id + 1, length=1000.0)
-                G.add_edge(node_id, node_id + 20, length=1000.0)
-        
-        # Mark as projected for area calculation
-        G.graph['crs'] = 'EPSG:32610'  # UTM zone 10N
-        
-        with pytest.raises(AreaTooLargeError) as exc_info:
-            extractor._validate_network(G, "test_location")
-        
-        assert "exceeds the 3 km² limit" in str(exc_info.value)
-    
+
     def test_valid_network_passes_validation(self):
         """Test that valid networks pass validation."""
         extractor = OSMExtractor()

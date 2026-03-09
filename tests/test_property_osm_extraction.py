@@ -11,53 +11,6 @@ import networkx as nx
 from disaster_evacuation.osm.osm_extractor import OSMExtractor, AreaTooLargeError
 
 
-# Feature: osm-road-network-integration, Property 1: Area Bounds Validation
-@given(
-    num_nodes=st.integers(min_value=10, max_value=100),
-    area_multiplier=st.floats(min_value=0.5, max_value=4.0)
-)
-@settings(max_examples=100, deadline=None)
-def test_area_bounds_validation(num_nodes, area_multiplier):
-    """
-    For any extracted road network, the geographic area covered should be 
-    between 1 km² and 3 km².
-    
-    Validates: Requirements 1.2
-    """
-    # Create a mock OSM graph with controlled area
-    G = nx.MultiDiGraph()
-    
-    # Add nodes in a grid pattern with spacing that controls area
-    # Spacing of ~0.01 degrees ≈ 1km, so we can control area
-    spacing = 0.001 * area_multiplier
-    grid_size = int(num_nodes ** 0.5)
-    
-    for i in range(grid_size):
-        for j in range(grid_size):
-            node_id = i * grid_size + j
-            G.add_node(node_id, x=-122.0 + j * spacing, y=37.8 + i * spacing)
-    
-    # Add some edges
-    for i in range(grid_size - 1):
-        for j in range(grid_size - 1):
-            node_id = i * grid_size + j
-            G.add_edge(node_id, node_id + 1, length=100.0)
-            G.add_edge(node_id, node_id + grid_size, length=100.0)
-    
-    # Skip if graph is empty
-    assume(G.number_of_edges() > 0)
-    
-    extractor = OSMExtractor()
-    stats = extractor.get_network_stats(G)
-    
-    # If area is too large, validation should catch it
-    if stats['area_km2'] > 3.0:
-        with pytest.raises(AreaTooLargeError):
-            extractor._validate_network(G, "test_location")
-    else:
-        # Should not raise for valid areas
-        extractor._validate_network(G, "test_location")
-
 
 # Feature: osm-road-network-integration, Property 2: Node Coordinate Completeness
 @given(

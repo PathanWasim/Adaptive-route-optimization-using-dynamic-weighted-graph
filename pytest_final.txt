@@ -1,0 +1,68 @@
+============================= test session starts =============================
+platform win32 -- Python 3.10.0, pytest-8.4.2, pluggy-1.6.0
+rootdir: E:\Major Projects\DAA CP
+plugins: anyio-4.11.0, hypothesis-6.99.13, cov-7.0.0
+collected 379 items
+
+tests\test_analysis_engine.py ...............                            [  3%]
+tests\test_configuration_error_handling.py ................              [  8%]
+tests\test_configuration_manager.py ...................                  [ 13%]
+tests\test_disaster_model.py ...............                             [ 17%]
+tests\test_disaster_modeler.py .............                             [ 20%]
+tests\test_graph_converter.py ..............                             [ 24%]
+tests\test_graph_manager.py ...............                              [ 28%]
+tests\test_graph_manager_coordinates.py ........                         [ 30%]
+tests\test_integration.py ...                                            [ 31%]
+tests\test_map_visualizer.py ..........                                  [ 33%]
+tests\test_models.py ................                                    [ 37%]
+tests\test_osm_extractor.py .....sss                                     [ 40%]
+tests\test_path_recomputation.py .........                               [ 42%]
+tests\test_pathfinder_engine.py ................                         [ 46%]
+tests\test_property_blocked_roads.py .......                             [ 48%]
+tests\test_property_comparative_analysis.py ...                          [ 49%]
+tests\test_property_configuration_effects.py ........                    [ 51%]
+tests\test_property_configuration_persistence.py ........                [ 53%]
+tests\test_property_data_import_validation.py ........                   [ 55%]
+tests\test_property_dijkstra_optimality.py .......                       [ 57%]
+tests\test_property_disaster_effects.py .......                          [ 59%]
+tests\test_property_disaster_modeler.py ....                             [ 60%]
+tests\test_property_disconnected_graphs.py ......                        [ 62%]
+tests\test_property_graph_construction.py .....                          [ 63%]
+tests\test_property_graph_conversion.py ......                           [ 64%]
+tests\test_property_graph_manager.py ..                                  [ 65%]
+tests\test_property_input_validation.py .............                    [ 68%]
+tests\test_property_osm_extraction.py ..                                 [ 69%]
+tests\test_property_output_completeness.py .........                     [ 71%]
+tests\test_property_path_recomputation.py ......                         [ 73%]
+tests\test_property_route_divergence.py .                                [ 73%]
+tests\test_property_visualization.py .                                   [ 73%]
+tests\test_property_visualization_consistency.py ............            [ 77%]
+tests\test_property_weight_calculation.py .........                      [ 79%]
+tests\test_road_blocking.py ............                                 [ 82%]
+tests\test_route_controller.py ........................                  [ 88%]
+tests\test_visualization_engine.py ............................          [ 96%]
+tests\test_weight_calculator.py ..............                           [100%]
+
+============================== warnings summary ===============================
+tests\test_osm_extractor.py:105
+  E:\Major Projects\DAA CP\tests\test_osm_extractor.py:105: PytestUnknownMarkWarning: Unknown pytest.mark.slow - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.slow
+
+tests\test_osm_extractor.py:123
+  E:\Major Projects\DAA CP\tests\test_osm_extractor.py:123: PytestUnknownMarkWarning: Unknown pytest.mark.slow - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.slow
+
+tests\test_osm_extractor.py:132
+  E:\Major Projects\DAA CP\tests\test_osm_extractor.py:132: PytestUnknownMarkWarning: Unknown pytest.mark.slow - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.slow
+
+tests/test_integration.py::test_full_workflow_integration
+  E:\Major Projects\DAA CP\disaster_evacuation\visualization\map_visualizer.py:119: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
+    plt.show()
+
+tests/test_integration.py::test_full_workflow_integration
+  E:\Major Projects\DAA CP\disaster_evacuation\visualization\map_visualizer.py:253: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
+    plt.show()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========== 376 passed, 3 skipped, 5 warnings in 111.12s (0:01:51) ============

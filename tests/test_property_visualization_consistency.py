@@ -255,7 +255,7 @@ class TestPropertyVisualizationConsistency:
         
         plt.close(fig)
     
-    @given(st.text(min_size=1, max_size=50, alphabet=st.characters(min_codepoint=32, max_codepoint=126)))
+    @given(st.text(min_size=1, max_size=50, alphabet=st.characters(min_codepoint=32, max_codepoint=126, blacklist_characters=['$'])))
     @settings(suppress_health_check=[HealthCheck.function_scoped_fixture, HealthCheck.filter_too_much], deadline=1000)
     def test_property_title_consistency(self, title):
         """

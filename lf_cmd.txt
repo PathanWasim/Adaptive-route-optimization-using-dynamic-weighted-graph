@@ -1,0 +1,192 @@
+FFFFFFF                                                                  [100%]
+================================== FAILURES ===================================
+_________________ TestOSMExtractor.test_area_too_large_error __________________
+tests\test_osm_extractor.py:83: in test_area_too_large_error
+    with pytest.raises(AreaTooLargeError) as exc_info:
+E   Failed: DID NOT RAISE <class 'disaster_evacuation.osm.osm_extractor.AreaTooLargeError'>
+_________________________ test_area_bounds_validation _________________________
+tests\test_property_osm_extraction.py:16: in test_area_bounds_validation
+    num_nodes=st.integers(min_value=10, max_value=100),
+tests\test_property_osm_extraction.py:55: in test_area_bounds_validation
+    with pytest.raises(AreaTooLargeError):
+E   Failed: DID NOT RAISE <class 'disaster_evacuation.osm.osm_extractor.AreaTooLargeError'>
+E   Falsifying example: test_area_bounds_validation(
+E       num_nodes=16,
+E       area_multiplier=1.0,
+E   )
+E   Explanation:
+E       These lines were always and only run by failing examples:
+E           E:\Major Projects\DAA CP\tests\test_property_osm_extraction.py:55
+____ TestPropertyVisualizationConsistency.test_property_title_consistency _____
+  + Exception Group Traceback (most recent call last):
+  |   File "E:\Major Projects\DAA CP\tests\test_property_visualization_consistency.py", line 259, in test_property_title_consistency
+  |     @settings(suppress_health_check=[HealthCheck.function_scoped_fixture, HealthCheck.filter_too_much], deadline=1000)
+  |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\hypothesis\core.py", line 1638, in wrapped_test
+  |     raise the_error_hypothesis_found
+  | exceptiongroup.ExceptionGroup: Hypothesis found 3 distinct failures. (3 sub-exceptions)
+  +-+---------------- 1 ----------------
+    | Traceback (most recent call last):
+    |   File "E:\Major Projects\DAA CP\tests\test_property_visualization_consistency.py", line 275, in test_property_title_consistency
+    |     fig = viz_engine.visualize_graph(graph, title=title)
+    |   File "E:\Major Projects\DAA CP\disaster_evacuation\visualization\visualization_engine.py", line 97, in visualize_graph
+    |     plt.tight_layout()
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\pyplot.py", line 2843, in tight_layout
+    |     gcf().tight_layout(pad=pad, h_pad=h_pad, w_pad=w_pad, rect=rect)
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\figure.py", line 3640, in tight_layout
+    |     engine.execute(self)
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\layout_engine.py", line 188, in execute
+    |     kwargs = get_tight_layout_figure(
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\_tight_layout.py", line 266, in get_tight_layout_figure
+    |     kwargs = _auto_adjust_subplotpars(fig, renderer,
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\_tight_layout.py", line 82, in _auto_adjust_subplotpars
+    |     bb += [martist._get_tightbbox_for_layout_only(ax, renderer)]
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\artist.py", line 1402, in _get_tightbbox_for_layout_only
+    |     return obj.get_tightbbox(*args, **{**kwargs, "for_layout_only": True})
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\axes\_base.py", line 4567, in get_tightbbox
+    |     self._update_title_position(renderer)
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\axes\_base.py", line 3144, in _update_title_position
+    |     if title.get_window_extent(renderer).ymin < top:
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\text.py", line 969, in get_window_extent
+    |     bbox, info, descent = self._get_layout(self._renderer)
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\text.py", line 382, in _get_layout
+    |     w, h, d = _get_text_metrics_with_cache(
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\text.py", line 69, in _get_text_metrics_with_cache
+    |     return _get_text_metrics_with_cache_impl(
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\text.py", line 77, in _get_text_metrics_with_cache_impl
+    |     return renderer_ref().get_text_width_height_descent(text, fontprop, ismath)
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\backends\backend_agg.py", line 215, in get_text_width_height_descent
+    |     self.mathtext_parser.parse(s, self.dpi, prop)
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\mathtext.py", line 86, in parse
+    |     return self._parse_cached(s, dpi, prop, antialiased, load_glyph_flags)
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\mathtext.py", line 100, in _parse_cached
+    |     box = self._parser.parse(s, fontset, fontsize, dpi)
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\_mathtext.py", line 2167, in parse
+    |     raise ValueError("\n" + ParseException.explain(err, 0)) from None
+    | ValueError: 
+    | \A
+    | ^
+    | ParseFatalException: Unknown symbol: \A, found '\'  (at char 0), (line:1, col:1)
+    | Falsifying example: test_property_title_consistency(
+    |     self=<tests.test_property_visualization_consistency.TestPropertyVisualizationConsistency object at 0x0000021EC29F88E0>,
+    |     title='$\\A$',
+    | )
+    +---------------- 2 ----------------
+    | Traceback (most recent call last):
+    |   File "E:\Major Projects\DAA CP\tests\test_property_visualization_consistency.py", line 275, in test_property_title_consistency
+    |     fig = viz_engine.visualize_graph(graph, title=title)
+    |   File "E:\Major Projects\DAA CP\disaster_evacuation\visualization\visualization_engine.py", line 97, in visualize_graph
+    |     plt.tight_layout()
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\pyplot.py", line 2843, in tight_layout
+    |     gcf().tight_layout(pad=pad, h_pad=h_pad, w_pad=w_pad, rect=rect)
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\figure.py", line 3640, in tight_layout
+    |     engine.execute(self)
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\layout_engine.py", line 188, in execute
+    |     kwargs = get_tight_layout_figure(
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\_tight_layout.py", line 266, in get_tight_layout_figure
+    |     kwargs = _auto_adjust_subplotpars(fig, renderer,
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\_tight_layout.py", line 82, in _auto_adjust_subplotpars
+    |     bb += [martist._get_tightbbox_for_layout_only(ax, renderer)]
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\artist.py", line 1402, in _get_tightbbox_for_layout_only
+    |     return obj.get_tightbbox(*args, **{**kwargs, "for_layout_only": True})
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\axes\_base.py", line 4567, in get_tightbbox
+    |     self._update_title_position(renderer)
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\axes\_base.py", line 3144, in _update_title_position
+    |     if title.get_window_extent(renderer).ymin < top:
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\text.py", line 969, in get_window_extent
+    |     bbox, info, descent = self._get_layout(self._renderer)
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\text.py", line 382, in _get_layout
+    |     w, h, d = _get_text_metrics_with_cache(
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\text.py", line 69, in _get_text_metrics_with_cache
+    |     return _get_text_metrics_with_cache_impl(
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\text.py", line 77, in _get_text_metrics_with_cache_impl
+    |     return renderer_ref().get_text_width_height_descent(text, fontprop, ismath)
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\backends\backend_agg.py", line 215, in get_text_width_height_descent
+    |     self.mathtext_parser.parse(s, self.dpi, prop)
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\mathtext.py", line 86, in parse
+    |     return self._parse_cached(s, dpi, prop, antialiased, load_glyph_flags)
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\mathtext.py", line 100, in _parse_cached
+    |     box = self._parser.parse(s, fontset, fontsize, dpi)
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\matplotlib\_mathtext.py", line 2167, in parse
+    |     raise ValueError("\n" + ParseException.explain(err, 0)) from None
+    | ValueError: 
+    | $$
+    | ^
+    | ParseException: Expected end of text, found '$'  (at char 0), (line:1, col:1)
+    | Falsifying example: test_property_title_consistency(
+    |     self=<tests.test_property_visualization_consistency.TestPropertyVisualizationConsistency object at 0x0000021EC29F88E0>,
+    |     title='$$',
+    | )
+    +---------------- 3 ----------------
+    | Traceback (most recent call last):
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\hypothesis\core.py", line 1023, in _execute_once_for_engine
+    |     result = self.execute_once(data)
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\hypothesis\core.py", line 946, in execute_once
+    |     result = self.test_runner(data, run)
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\hypothesis\core.py", line 734, in default_executor
+    |     return function(data)
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\hypothesis\core.py", line 921, in run
+    |     return test(*args, **kwargs)
+    |   File "E:\Major Projects\DAA CP\tests\test_property_visualization_consistency.py", line 259, in test_property_title_consistency
+    |     @settings(suppress_health_check=[HealthCheck.function_scoped_fixture, HealthCheck.filter_too_much], deadline=1000)
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\hypothesis\core.py", line 846, in test
+    |     raise DeadlineExceeded(runtime, self.settings.deadline)
+    | hypothesis.errors.DeadlineExceeded: Test took 3310194.09ms, which exceeds the deadline of 1000.00ms
+    | 
+    | The above exception was the direct cause of the following exception:
+    | 
+    | Traceback (most recent call last):
+    |   File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\hypothesis\core.py", line 974, in execute_once
+    |     raise Flaky(
+    | hypothesis.errors.Flaky: Hypothesis test_property_title_consistency(self=<tests.test_property_visualization_consistency.TestPropertyVisualizationConsistency object at 0x0000021EC29F88E0>, title='$%') produces unreliable results: Falsified on the first call but did not on a subsequent one
+    | Falsifying example: test_property_title_consistency(
+    |     self=<tests.test_property_visualization_consistency.TestPropertyVisualizationConsistency object at 0x0000021EC29F88E0>,
+    |     title='$%',
+    | )
+    | Unreliable test timings! On an initial run, this test took 3310194.09ms, which exceeded the deadline of 1000.00ms, but on a subsequent run it took 48.96 ms, which did not. If you expect this sort of variability in your test timings, consider turning deadlines off for this test by setting deadline=None.
+    +------------------------------------
+--------------------------------- Hypothesis ----------------------------------
+WARNING: Hypothesis has spent more than five minutes working to shrink a failing example, and stopped because it is making very slow progress.  When you re-run your tests, shrinking will resume and may take this long before aborting again.
+PLEASE REPORT THIS if you can provide a reproducing example, so that we can improve shrinking performance for everyone.
+___________ TestWeightCalculator.test_calculate_risk_penalty_flood ____________
+tests\test_weight_calculator.py:33: in test_calculate_risk_penalty_flood
+    assert abs(risk_penalty - expected) < 1e-10
+E   assert 9.600000000000001 < 1e-10
+E    +  where 9.600000000000001 = abs((10.240000000000002 - 0.6400000000000001))
+____________ TestWeightCalculator.test_calculate_risk_penalty_fire ____________
+tests\test_weight_calculator.py:48: in test_calculate_risk_penalty_fire
+    assert abs(risk_penalty - expected) < 1e-10
+E   assert 11.088000000000001 < 1e-10
+E    +  where 11.088000000000001 = abs((11.520000000000001 - 0.432))
+_________ TestWeightCalculator.test_calculate_risk_penalty_earthquake _________
+tests\test_weight_calculator.py:63: in test_calculate_risk_penalty_earthquake
+    assert abs(risk_penalty - expected) < 1e-10
+E   assert 2.8265625 < 1e-10
+E    +  where 2.8265625 = abs((3.1640625 - 0.3375))
+______ TestWeightCalculator.test_calculate_dynamic_weight_with_disaster _______
+tests\test_weight_calculator.py:114: in test_calculate_dynamic_weight_with_disaster
+    assert abs(weight - expected) < 1e-10
+E   assert 2.4 < 1e-10
+E    +  where 2.4 = abs((3.6 - 1.2000000000000002))
+============================== warnings summary ===============================
+tests\test_osm_extractor.py:133
+  E:\Major Projects\DAA CP\tests\test_osm_extractor.py:133: PytestUnknownMarkWarning: Unknown pytest.mark.slow - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.slow
+
+tests\test_osm_extractor.py:151
+  E:\Major Projects\DAA CP\tests\test_osm_extractor.py:151: PytestUnknownMarkWarning: Unknown pytest.mark.slow - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.slow
+
+tests\test_osm_extractor.py:160
+  E:\Major Projects\DAA CP\tests\test_osm_extractor.py:160: PytestUnknownMarkWarning: Unknown pytest.mark.slow - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.slow
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_osm_extractor.py::TestOSMExtractor::test_area_too_large_error
+FAILED tests/test_property_osm_extraction.py::test_area_bounds_validation - F...
+FAILED tests/test_property_visualization_consistency.py::TestPropertyVisualizationConsistency::test_property_title_consistency
+FAILED tests/test_weight_calculator.py::TestWeightCalculator::test_calculate_risk_penalty_flood
+FAILED tests/test_weight_calculator.py::TestWeightCalculator::test_calculate_risk_penalty_fire
+FAILED tests/test_weight_calculator.py::TestWeightCalculator::test_calculate_risk_penalty_earthquake
+FAILED tests/test_weight_calculator.py::TestWeightCalculator::test_calculate_dynamic_weight_with_disaster
+7 failed, 32 deselected, 3 warnings in 3326.46s (0:55:26)

@@ -7,7 +7,7 @@
     <title>Disaster Evacuation Routing - Algorithm Visualization</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap');
 
         * {
             margin: 0;
@@ -19,21 +19,26 @@
             --primary: #6366f1;
             --primary-dark: #4f46e5;
             --secondary: #8b5cf6;
+            --accent: #06b6d4;
             --success: #10b981;
             --danger: #ef4444;
             --warning: #f59e0b;
             --info: #3b82f6;
-            --dark: #1e293b;
-            --light: #f8fafc;
-            --glass-bg: rgba(255, 255, 255, 0.1);
-            --glass-border: rgba(255, 255, 255, 0.2);
+            --sidebar-bg: rgba(8, 12, 28, 0.97);
+            --sidebar-border: rgba(255, 255, 255, 0.07);
+            --card-bg: rgba(255, 255, 255, 0.04);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --text-primary: #f1f5f9;
+            --text-secondary: rgba(190, 200, 220, 0.85);
+            --text-muted: rgba(120, 135, 155, 0.75);
+            --tab-active: #6366f1;
         }
 
         body {
             font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            background: #0a0f1e;
             overflow: hidden;
-            color: var(--dark);
+            color: var(--text-primary);
         }
 
         #app-container {
@@ -42,17 +47,33 @@
             position: relative;
         }
 
-        /* Glassmorphism Sidebar */
+        /* Dark sidebar */
         #sidebar {
             width: 380px;
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-right: 1px solid var(--glass-border);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            min-width: 380px;
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--sidebar-border);
+            box-shadow: 4px 0 40px rgba(0, 0, 0, 0.5);
             overflow-y: auto;
+            overflow-x: hidden;
             z-index: 1000;
-            animation: slideInLeft 0.5s ease-out;
+            display: flex;
+            flex-direction: column;
+            transition: width 0.3s ease, min-width 0.3s ease;
+            animation: slideInLeft 0.4s ease-out;
+        }
+
+        #sidebar.collapsed {
+            width: 64px;
+            min-width: 64px;
+        }
+
+        #sidebar.collapsed .sidebar-content {
+            display: none;
+        }
+
+        #sidebar.collapsed .collapse-icon {
+            transform: rotate(180deg);
         }
 
         @keyframes slideInLeft {
@@ -114,285 +135,721 @@
             border-radius: 4px;
         }
 
-        .header {
-            background: linear-gradient(135deg, rgba(99, 102, 241, 0.9) 0%, rgba(139, 92, 246, 0.9) 100%);
+        /* Topbar */
+        #topbar {
+            background: rgba(6, 9, 20, 0.98);
+            border-bottom: 1px solid var(--sidebar-border);
+            padding: 0 20px;
+            height: 46px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        #topbar .logo {
+            font-size: 13px;
+            font-weight: 800;
             color: white;
-            padding: 30px 25px;
-            border-bottom: 1px solid var(--glass-border);
+            letter-spacing: 1px;
+        }
+
+        #topbar .logo span {
+            color: var(--primary);
+        }
+
+        .topbar-stat {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 6px;
+            padding: 3px 10px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        .topbar-stat b {
+            color: white;
+        }
+
+        #topbar .live-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ef4444;
+            animation: pulse 2s infinite;
+            flex-shrink: 0;
+        }
+
+        .topbar-sep {
+            flex: 1;
+        }
+
+        .collapse-btn {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 6px;
+            padding: 5px 8px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .collapse-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.9) 0%, rgba(99, 102, 241, 0.7) 100%);
+            color: white;
+            padding: 22px 20px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            flex-shrink: 0;
         }
 
         .header h1 {
-            font-size: 22px;
-            font-weight: 700;
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .header p {
-            font-size: 13px;
-            opacity: 0.95;
-            font-weight: 300;
-        }
-
-        .section {
-            padding: 25px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            animation: fadeIn 0.5s ease-out;
-            background: rgba(255, 255, 255, 0.05);
-            margin: 10px;
-            border-radius: 15px;
-        }
-
-        .section h3 {
-            font-size: 14px;
-            color: white;
-            margin-bottom: 18px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            font-weight: 600;
+            font-size: 18px;
+            font-weight: 800;
+            margin-bottom: 6px;
+            letter-spacing: -0.3px;
             display: flex;
             align-items: center;
             gap: 8px;
         }
 
+        .header .subtitle {
+            font-size: 11px;
+            opacity: 0.8;
+            font-weight: 400;
+            margin-bottom: 10px;
+        }
+
+        .algo-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .algo-badge-pill {
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 2px 9px;
+            font-size: 10px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        /* Tabs */
+        .tab-bar {
+            display: flex;
+            background: rgba(0, 0, 0, 0.3);
+            border-bottom: 1px solid var(--sidebar-border);
+            flex-shrink: 0;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 11px 4px;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            border-bottom: 2px solid transparent;
+        }
+
+        .tab-btn .tab-icon {
+            font-size: 15px;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-secondary);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .tab-panel {
+            display: none;
+            flex-direction: column;
+            gap: 0;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .tab-panel.active {
+            display: flex;
+        }
+
+        /* Section cards */
+        .section {
+            padding: 18px 16px;
+            border-bottom: 1px solid var(--sidebar-border);
+        }
+
+        .section h3 {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
         .control-group {
-            margin-bottom: 18px;
+            margin-bottom: 14px;
         }
 
         .control-group label {
             display: block;
-            font-size: 13px;
-            color: rgba(255, 255, 255, 0.9);
-            margin-bottom: 8px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 7px;
             font-weight: 500;
         }
 
         .control-group select,
         .control-group input[type="number"] {
             width: 100%;
-            padding: 12px 15px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 10px;
-            font-size: 14px;
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            backdrop-filter: blur(10px);
-            transition: all 0.3s ease;
+            padding: 10px 12px;
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            font-size: 13px;
+            background: var(--card-bg);
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+            font-family: inherit;
         }
 
         .control-group select:focus,
         .control-group input[type="number"]:focus {
             outline: none;
             border-color: var(--primary);
-            background: rgba(255, 255, 255, 0.15);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25);
         }
 
         .control-group select option {
-            background: var(--dark);
+            background: #0d1117;
             color: white;
         }
 
         .control-group input[type="range"] {
             width: 100%;
-            height: 6px;
+            height: 5px;
             border-radius: 5px;
-            background: rgba(255, 255, 255, 0.2);
+            background: var(--card-border);
             outline: none;
             -webkit-appearance: none;
+            appearance: none;
+            cursor: pointer;
         }
 
         .control-group input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
-            width: 18px;
-            height: 18px;
+            width: 16px;
+            height: 16px;
             border-radius: 50%;
             background: white;
             cursor: pointer;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-            transition: all 0.3s ease;
+            box-shadow: 0 1px 6px rgba(0, 0, 0, 0.4);
+            transition: transform 0.2s;
         }
 
         .control-group input[type="range"]::-webkit-slider-thumb:hover {
-            transform: scale(1.2);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transform: scale(1.3);
         }
 
         .range-value {
             display: inline-block;
-            margin-left: 10px;
+            margin-left: 8px;
             font-weight: 700;
             color: white;
-            background: rgba(255, 255, 255, 0.2);
-            padding: 2px 10px;
-            border-radius: 12px;
-            font-size: 12px;
+            background: rgba(99, 102, 241, 0.3);
+            padding: 1px 8px;
+            border-radius: 10px;
+            font-size: 11px;
         }
 
+        /* Buttons */
         .btn {
             width: 100%;
-            padding: 14px 20px;
+            padding: 11px 16px;
             border: none;
-            border-radius: 12px;
-            font-size: 15px;
+            border-radius: 9px;
+            font-size: 13px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
             position: relative;
             overflow: hidden;
-        }
-
-        .btn::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.3);
-            transform: translate(-50%, -50%);
-            transition: width 0.6s, height 0.6s;
-        }
-
-        .btn:hover::before {
-            width: 300px;
-            height: 300px;
+            font-family: inherit;
         }
 
         .btn-primary {
             background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
             color: white;
-            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+            box-shadow: 0 3px 12px rgba(99, 102, 241, 0.4);
         }
 
         .btn-primary:hover:not(:disabled) {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.6);
-        }
-
-        .btn-primary:active:not(:disabled) {
-            transform: translateY(0);
+            box-shadow: 0 5px 18px rgba(99, 102, 241, 0.55);
         }
 
         .btn-primary:disabled {
-            opacity: 0.5;
+            opacity: 0.4;
             cursor: not-allowed;
-            transform: none;
         }
 
         .btn-secondary {
-            background: rgba(255, 255, 255, 0.15);
-            color: white;
-            margin-top: 12px;
-            backdrop-filter: blur(10px);
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            color: var(--text-secondary);
+            margin-top: 8px;
         }
 
         .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.25);
+            background: rgba(255, 255, 255, 0.08);
+            color: white;
         }
 
         .btn-animate {
             background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+            color: white;
+            box-shadow: 0 3px 12px rgba(16, 185, 129, 0.4);
         }
 
         .btn-animate:hover:not(:disabled) {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.6);
+            box-shadow: 0 5px 18px rgba(16, 185, 129, 0.55);
         }
 
+        .btn-animate:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .btn-group-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .btn-sm {
+            padding: 9px 8px;
+            font-size: 11px;
+            width: 100%;
+        }
+
+        .btn-demo {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+            box-shadow: 0 3px 12px rgba(245, 158, 11, 0.3);
+        }
+
+        .btn-demo:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 18px rgba(245, 158, 11, 0.5);
+        }
+
+        .btn-benchmark {
+            background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+            color: white;
+            box-shadow: 0 3px 12px rgba(139, 92, 246, 0.3);
+        }
+
+        .btn-benchmark:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 18px rgba(139, 92, 246, 0.5);
+        }
+
+        .btn-export {
+            background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+            color: white;
+            box-shadow: 0 3px 12px rgba(6, 182, 212, 0.3);
+        }
+
+        .btn-export:hover:not(:disabled) {
+            transform: translateY(-2px);
+        }
+
+        .keyboard-hint {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-align: center;
+            margin-top: 8px;
+        }
+
+        .keyboard-hint kbd {
+            background: rgba(255, 255, 255, 0.08);
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-size: 9px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        /* Status */
         .status {
-            padding: 12px 15px;
-            border-radius: 10px;
-            font-size: 13px;
-            margin-top: 12px;
-            backdrop-filter: blur(10px);
-            animation: fadeIn 0.3s ease-out;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            margin-top: 10px;
+            animation: fadeIn 0.3s;
         }
 
         .status.info {
-            background: rgba(59, 130, 246, 0.2);
-            color: white;
-            border: 1px solid rgba(59, 130, 246, 0.3);
+            background: rgba(59, 130, 246, 0.12);
+            color: #93c5fd;
+            border: 1px solid rgba(59, 130, 246, 0.2);
         }
 
         .status.success {
-            background: rgba(16, 185, 129, 0.2);
-            color: white;
-            border: 1px solid rgba(16, 185, 129, 0.3);
+            background: rgba(16, 185, 129, 0.12);
+            color: #6ee7b7;
+            border: 1px solid rgba(16, 185, 129, 0.2);
         }
 
         .status.error {
-            background: rgba(239, 68, 68, 0.2);
-            color: white;
-            border: 1px solid rgba(239, 68, 68, 0.3);
+            background: rgba(239, 68, 68, 0.12);
+            color: #fca5a5;
+            border: 1px solid rgba(239, 68, 68, 0.2);
         }
 
         .status.warning {
-            background: rgba(245, 158, 11, 0.2);
-            color: white;
-            border: 1px solid rgba(245, 158, 11, 0.3);
+            background: rgba(245, 158, 11, 0.12);
+            color: #fcd34d;
+            border: 1px solid rgba(245, 158, 11, 0.2);
         }
 
+        /* Loading */
         .loading {
             text-align: center;
-            padding: 25px;
+            padding: 20px;
         }
 
         .spinner {
-            border: 3px solid rgba(255, 255, 255, 0.2);
-            border-top: 3px solid white;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top: 3px solid var(--primary);
             border-radius: 50%;
-            width: 45px;
-            height: 45px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 15px;
+            width: 38px;
+            height: 38px;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 12px;
         }
 
         .loading p {
-            color: white;
-            font-size: 14px;
+            color: var(--text-secondary);
+            font-size: 13px;
         }
 
-        .metrics {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 18px;
+        /* Metric cards */
+        .metric-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin-bottom: 8px;
+            border-left: 3px solid var(--primary);
+        }
+
+        .metric-card.success-card {
+            border-left-color: var(--success);
+        }
+
+        .metric-card.danger-card {
+            border-left-color: var(--danger);
+        }
+
+        .metric-card.warning-card {
+            border-left-color: var(--warning);
+        }
+
+        .metric-card-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+
+        .metric-card-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: white;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .metric-card-sub {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .badge-up {
+            color: #fca5a5;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .badge-dn {
+            color: #6ee7b7;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        /* Live stats widget */
+        #live-stats {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.1));
+            border: 1px solid rgba(99, 102, 241, 0.25);
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin: 10px 16px;
+            display: none;
+        }
+
+        #live-stats .ls-header {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        #live-stats .ls-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        #live-stats .ls-item {
+            text-align: center;
+        }
+
+        #live-stats .ls-val {
+            font-size: 15px;
+            font-weight: 700;
+            color: white;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        #live-stats .ls-lbl {
+            font-size: 9px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        /* Toast */
+        #toast-container {
+            position: fixed;
+            top: 56px;
+            right: 16px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            pointer-events: none;
+        }
+
+        .toast {
+            background: rgba(15, 22, 40, 0.97);
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            padding: 12px 16px;
+            min-width: 260px;
+            max-width: 320px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            animation: toastIn 0.3s ease-out;
+            pointer-events: all;
+        }
+
+        .toast.hiding {
+            animation: toastOut 0.3s ease-in forwards;
+        }
+
+        .toast-icon {
+            font-size: 16px;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .toast-body {
+            flex: 1;
+        }
+
+        .toast-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 2px;
+        }
+
+        .toast-msg {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .toast-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 14px;
+            padding: 0 2px;
+        }
+
+        .toast.success {
+            border-left: 3px solid var(--success);
+        }
+
+        .toast.error {
+            border-left: 3px solid var(--danger);
+        }
+
+        .toast.info {
+            border-left: 3px solid var(--info);
+        }
+
+        .toast.warning {
+            border-left: 3px solid var(--warning);
+        }
+
+        @keyframes toastIn {
+            from {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes toastOut {
+            from {
+                opacity: 1;
+            }
+
+            to {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+        }
+
+        /* Node info popup */
+        #node-popup {
+            position: fixed;
+            z-index: 9000;
+            background: rgba(10, 15, 30, 0.98);
+            border: 1px solid var(--card-border);
             border-radius: 12px;
-            backdrop-filter: blur(10px);
+            padding: 16px;
+            min-width: 250px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+            display: none;
+            pointer-events: all;
+        }
+
+        #node-popup .np-header {
+            font-size: 13px;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #node-popup .np-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        #node-popup .np-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            padding: 4px 0;
+            border-bottom: 1px solid var(--sidebar-border);
+        }
+
+        #node-popup .np-row:last-child {
+            border: none;
+        }
+
+        #node-popup .np-label {
+            color: var(--text-muted);
+        }
+
+        #node-popup .np-val {
+            color: white;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Old metric rows kept for compat */
+        .metrics {
+            background: var(--card-bg);
+            padding: 14px;
+            border-radius: 10px;
         }
 
         .metric-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 12px;
-            font-size: 13px;
+            margin-bottom: 10px;
+            font-size: 12px;
             align-items: center;
         }
 
         .metric-label {
-            color: rgba(255, 255, 255, 0.8);
+            color: var(--text-secondary);
             font-weight: 500;
         }
 
         .metric-value {
             font-weight: 700;
             color: white;
-            background: rgba(255, 255, 255, 0.15);
-            padding: 4px 12px;
-            border-radius: 8px;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            padding: 3px 10px;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
         }
 
         .metric-value.increase {
-            background: rgba(239, 68, 68, 0.2);
+            border-color: rgba(239, 68, 68, 0.3);
             color: #fca5a5;
         }
 
         .metric-value.decrease {
-            background: rgba(16, 185, 129, 0.2);
+            border-color: rgba(16, 185, 129, 0.3);
             color: #6ee7b7;
         }
 
@@ -402,21 +859,112 @@
             position: relative;
         }
 
-        /* Algorithm Visualization Panel */
+        /* Algo execution panel — bottom right */
         #algo-panel {
-            position: absolute;
-            top: 20px;
+            position: fixed;
+            bottom: 20px;
             right: 20px;
-            width: 350px;
-            background: rgba(30, 41, 59, 0.95);
-            backdrop-filter: blur(20px);
-            border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            width: 320px;
+            background: rgba(8, 12, 28, 0.96);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
             z-index: 1000;
             display: none;
-            animation: slideInRight 0.5s ease-out;
+            animation: slideInRight 0.4s ease-out;
             color: white;
+        }
+
+        #algo-panel h3 {
+            font-size: 13px;
+            margin-bottom: 12px;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .algo-progress {
+            height: 4px;
+            background: var(--card-border);
+            border-radius: 2px;
+            margin-bottom: 12px;
+            overflow: hidden;
+        }
+
+        .algo-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            border-radius: 2px;
+            transition: width 0.3s;
+        }
+
+        .algo-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .stat-box {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            padding: 8px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .stat-label {
+            font-size: 9px;
+            color: var(--text-muted);
+            margin-top: 3px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .algo-step {
+            background: var(--card-bg);
+            padding: 8px 10px;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            border-left: 2px solid var(--primary);
+            font-size: 11px;
+            color: var(--text-secondary);
+            animation: fadeIn 0.2s;
+        }
+
+        .algo-step.visiting {
+            border-left-color: #f59e0b;
+        }
+
+        .complexity-counter {
+            text-align: center;
+            padding: 8px;
+            margin-top: 8px;
+            background: var(--card-bg);
+            border-radius: 8px;
+            border: 1px solid var(--card-border);
+        }
+
+        .complexity-counter .time-value {
+            font-size: 22px;
+            font-weight: 700;
+            color: #a5b4fc;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .complexity-counter .time-label {
+            font-size: 9px;
+            color: var(--text-muted);
+            margin-top: 2px;
         }
 
         @keyframes slideInRight {
@@ -483,19 +1031,180 @@
             margin-top: 5px;
         }
 
-        .legend {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 15px;
+        /* Legend floating on map */
+        #map-legend {
+            position: absolute;
+            bottom: 32px;
+            left: 16px;
+            z-index: 999;
+            background: rgba(8, 12, 28, 0.92);
+            border: 1px solid var(--card-border);
             border-radius: 10px;
-            backdrop-filter: blur(10px);
+            padding: 10px 14px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
         }
 
-        .legend-item {
+        .leg-item {
             display: flex;
             align-items: center;
-            margin-bottom: 10px;
+            gap: 6px;
+            font-size: 10px;
+            color: var(--text-secondary);
+        }
+
+        .leg-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .leg-line {
+            width: 22px;
+            height: 3px;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+
+        .leg-dash {
+            width: 22px;
+            height: 3px;
+            background: repeating-linear-gradient(to right, #3b82f6 0, #3b82f6 5px, transparent 5px, transparent 10px);
+            flex-shrink: 0;
+        }
+
+        /* Algo comparison table */
+        .algo-comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 11px;
+        }
+
+        .algo-comparison-table th,
+        .algo-comparison-table td {
+            padding: 7px 6px;
+            text-align: center;
+            border-bottom: 1px solid var(--sidebar-border);
+            color: var(--text-secondary);
+        }
+
+        .algo-comparison-table th {
+            font-weight: 600;
+            font-size: 10px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .algo-comparison-table tr.best-row {
+            background: rgba(16, 185, 129, 0.07);
+        }
+
+        .algo-comparison-table tr.worst-row {
+            background: rgba(239, 68, 68, 0.07);
+        }
+
+        .algo-comparison-table tr:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .algo-badge {
+            display: inline-block;
+            padding: 1px 6px;
+            border-radius: 5px;
+            font-size: 9px;
+            font-weight: 700;
+        }
+
+        .algo-badge.best {
+            background: rgba(16, 185, 129, 0.25);
+            color: #6ee7b7;
+        }
+
+        .algo-badge.worst {
+            background: rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+        }
+
+        .spark-bar {
+            display: inline-block;
+            height: 8px;
+            background: var(--primary);
+            border-radius: 2px;
+            vertical-align: middle;
+            margin-left: 4px;
+            opacity: 0.7;
+        }
+
+        /* Toggle */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .toggle-row label {
+            color: var(--text-secondary);
             font-size: 12px;
+            cursor: pointer;
+        }
+
+        .toggle-row input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            accent-color: var(--primary);
+        }
+
+        /* Speed control */
+        .speed-ctrl {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .speed-ctrl label {
+            color: var(--text-secondary);
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .speed-btn {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            padding: 4px 10px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .speed-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
             color: white;
+        }
+
+        .speed-btn.active {
+            background: rgba(99, 102, 241, 0.2);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        #sidebar::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        #sidebar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        #sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
         }
 
         .legend-color {
@@ -641,207 +1350,294 @@
 </head>
 
 <body>
-    <div id="app-container">
-        <!-- Sidebar -->
-        <div id="sidebar">
-            <div class="header">
-                <h1>🚨 Disaster Evacuation Router</h1>
-                <p>Comparative Algorithm Visualization — Dijkstra · A* · Bellman-Ford</p>
-            </div>
+    <!-- Toast System -->
+    <div id="toast-container"></div>
+    <!-- Node Info Popup -->
+    <div id="node-popup">
+        <div class="np-header"><span id="np-title">Node Info</span><button class="np-close"
+                onclick="document.getElementById('node-popup').style.display='none'">✕</button></div>
+        <div id="np-body"></div>
+    </div>
 
-            <!-- City Selection -->
-            <div class="section">
-                <h3>📍 Select City</h3>
-                <div class="control-group">
-                    <label>City</label>
-                    <select id="city-select">
-                        <option value="">-- Select a city --</option>
-                    </select>
-                </div>
-                <button class="btn btn-primary" id="load-network-btn" disabled>
-                    Load Road Network
-                </button>
-                <div id="network-status"></div>
-            </div>
-
-            <!-- Route Selection -->
-            <div class="section" id="route-section" style="display: none;">
-                <h3>🎯 Select Route</h3>
-                <div class="control-group">
-                    <label>Source Node</label>
-                    <input type="number" id="source-input" placeholder="Click on map" min="0">
-                </div>
-                <div class="control-group">
-                    <label>Destination Node</label>
-                    <input type="number" id="target-input" placeholder="Click on map" min="0">
-                </div>
-                <div class="status info">
-                    💡 Click on the map to select source and destination
-                </div>
-            </div>
-
-            <!-- Disaster Configuration -->
-            <div class="section" id="disaster-section" style="display: none;">
-                <h3>⚠️ Disaster Scenario</h3>
-                <div class="control-group">
-                    <label>Disaster Type</label>
-                    <select id="disaster-type">
-                        <option value="none">None</option>
-                        <option value="fire">🔥 Fire</option>
-                        <option value="flood">🌊 Flood</option>
-                        <option value="earthquake">🌍 Earthquake</option>
-                    </select>
-                </div>
-                <div id="disaster-controls" style="display: none;">
-                    <div class="control-group">
-                        <label>Radius (meters) <span class="range-value" id="radius-value">200</span></label>
-                        <input type="range" id="radius-slider" min="50" max="500" value="200" step="10">
-                    </div>
-                    <div class="control-group">
-                        <label>Severity <span class="range-value" id="severity-value">0.5</span></label>
-                        <input type="range" id="severity-slider" min="0.1" max="1.0" value="0.5" step="0.1">
-                    </div>
-                    <div class="status warning">
-                        📍 Click on map to set disaster epicenter
-                    </div>
-                </div>
-            </div>
-
-            <!-- Algorithm Selection & Objectives -->
-            <div class="section" id="algorithm-section" style="display: none;">
-                <h3>🧠 Algorithm</h3>
-                <div class="control-group">
-                    <label>Pathfinding Algorithm</label>
-                    <select id="algorithm-select">
-                        <option value="dijkstra">Dijkstra — O(E log V)</option>
-                        <option value="astar">A* (Haversine) — O(E log V)</option>
-                        <option value="bidirectional">Bidirectional Dijkstra — O(b^(d/2))</option>
-                        <option value="bellman_ford">Bellman-Ford — O(VE)</option>
-                        <option value="yen_k_shortest">Yen's k-Shortest Paths</option>
-                    </select>
-                </div>
-                <div class="control-group" id="k-paths-control" style="display: none;">
-                    <label>Number of Alternative Paths (k) <span class="range-value" id="k-paths-value">3</span></label>
-                    <input type="range" id="k-paths-slider" min="1" max="5" value="3" step="1">
-                </div>
-                <div class="toggle-animation">
-                    <input type="checkbox" id="compare-toggle">
-                    <label for="compare-toggle">Compare All Algorithms</label>
-                </div>
-
-                <h3 style="margin-top: 15px;">⚖️ Routing Objectives</h3>
-                <div class="control-group">
-                    <label>Distance Priority (α) <span class="range-value" id="alpha-value">1.0</span></label>
-                    <input type="range" id="alpha-slider" min="0.0" max="5.0" value="1.0" step="0.1">
-                </div>
-                <div class="control-group">
-                    <label>Risk Avoidance (β) <span class="range-value" id="beta-value">1.0</span></label>
-                    <input type="range" id="beta-slider" min="0.0" max="5.0" value="1.0" step="0.1">
-                </div>
-                <div class="control-group">
-                    <label>Congestion Avoidance (γ) <span class="range-value" id="gamma-value">1.0</span></label>
-                    <input type="range" id="gamma-slider" min="0.0" max="5.0" value="1.0" step="0.1">
-                </div>
-            </div>
-
-            <!-- Animation Toggle -->
-            <div class="section" id="animation-section" style="display: none;">
-                <h3>🎬 Visualization</h3>
-                <div class="toggle-animation">
-                    <input type="checkbox" id="animate-toggle" checked>
-                    <label for="animate-toggle">Show Algorithm Animation</label>
-                </div>
-            </div>
-
-            <!-- Compute Button -->
-            <div class="section" id="compute-section" style="display: none;">
-                <button class="btn btn-animate" id="compute-btn" disabled>
-                    🚀 Compute & Visualize Routes
-                </button>
-                <button class="btn btn-demo" id="auto-demo-btn">
-                    🎬 Auto-Demo
-                </button>
-                <button class="btn btn-demo" id="simulate-time-btn"
-                    style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
-                    ⏱ Simulate R(t)
-                </button>
-                <button class="btn btn-benchmark" id="benchmark-btn">
-                    📊 Run Complexity Benchmarks
-                </button>
-                <button class="btn btn-secondary" id="save-btn" style="display: none;">
-                    💾 Save Visualization
-                </button>
-                <div class="keyboard-hint">Press <kbd>D</kbd> Demo · <kbd>B</kbd> Benchmark · <kbd>R</kbd> Reset</div>
-            </div>
-
-            <!-- Results -->
-            <div class="section" id="results-section" style="display: none;">
-                <h3>📊 Results</h3>
-                <div class="metrics" id="metrics"></div>
-                <div id="algo-comparison-section" style="display: none;">
-                    <h3 style="margin-top: 15px;">🔬 Algorithm Comparison</h3>
-                    <div id="algo-comparison"></div>
-                </div>
-            </div>
-
-            <!-- Legend -->
-            <div class="section">
-                <h3>🗺️ Legend</h3>
-                <div class="legend">
-                    <div class="legend-item">
-                        <div class="legend-color dashed"></div>
-                        <span>Normal Route</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background: #10b981;"></div>
-                        <span>Disaster-Aware Route</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background: #ef4444;"></div>
-                        <span>Blocked Roads</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background: #94a3b8;"></div>
-                        <span>Normal Roads</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Academic Note -->
-            <div class="section">
-                <div class="status info">
-                    <strong>Academic Integrity:</strong><br>
-                    ✓ All routing uses internal Dijkstra/A*/Bellman-Ford<br>
-                    ✓ Maps for visualization only<br>
-                    ✓ No external routing APIs
-                </div>
-            </div>
+    <div id="app-container" style="flex-direction:column;">
+        <!-- Top Navbar -->
+        <div id="topbar">
+            <div class="logo">EVAC<span>ROUTE</span></div>
+            <span class="live-dot"></span>
+            <div class="topbar-stat" id="tb-city">No city loaded</div>
+            <div class="topbar-stat" id="tb-nodes">— nodes</div>
+            <div class="topbar-stat" id="tb-edges">— edges</div>
+            <div class="topbar-sep"></div>
+            <div class="topbar-stat">Press <kbd
+                    style="background:rgba(255,255,255,0.1);padding:1px 5px;border-radius:3px;font-size:10px;">?</kbd>
+                for shortcuts</div>
+            <button class="collapse-btn" id="sidebar-toggle-btn" title="Toggle Sidebar">◀</button>
         </div>
 
-        <!-- Map -->
-        <div id="map"></div>
+        <div style="display:flex;flex:1;overflow:hidden;">
+            <!-- Sidebar -->
+            <div id="sidebar">
+                <div class="sidebar-content" style="display:flex;flex-direction:column;height:100%;">
+                    <!-- Header -->
+                    <div class="header">
+                        <h1>🚨 Disaster Evacuation Router</h1>
+                        <div class="subtitle">Multi-Objective Adaptive Routing Engine</div>
+                        <div class="algo-badges">
+                            <span class="algo-badge-pill">Dijkstra</span>
+                            <span class="algo-badge-pill">A*</span>
+                            <span class="algo-badge-pill">Bi-Dijkstra</span>
+                            <span class="algo-badge-pill">Yen k-SP</span>
+                            <span class="algo-badge-pill">Bellman-Ford</span>
+                        </div>
+                    </div>
 
-        <!-- Algorithm Visualization Panel -->
-        <div id="algo-panel">
-            <h3>⚙️ Algorithm Execution</h3>
-            <div id="algo-steps"></div>
-            <div class="algo-stats">
-                <div class="stat-box">
-                    <div class="stat-value" id="nodes-visited">0</div>
-                    <div class="stat-label">NODES VISITED</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-value" id="queue-size">0</div>
-                    <div class="stat-label">QUEUE SIZE</div>
+                    <!-- Live Stats (persistent) -->
+                    <div id="live-stats">
+                        <div class="ls-header">⚡ Live Route Stats</div>
+                        <div class="ls-grid">
+                            <div class="ls-item">
+                                <div class="ls-val" id="ls-normal">—</div>
+                                <div class="ls-lbl">Normal (m)</div>
+                            </div>
+                            <div class="ls-item">
+                                <div class="ls-val" id="ls-disaster">—</div>
+                                <div class="ls-lbl">Disaster (m)</div>
+                            </div>
+                            <div class="ls-item">
+                                <div class="ls-val" id="ls-pct" style="color:#fca5a5;">—</div>
+                                <div class="ls-lbl">Increase %</div>
+                            </div>
+                            <div class="ls-item">
+                                <div class="ls-val" id="ls-time">—</div>
+                                <div class="ls-lbl">Compute (ms)</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab Bar -->
+                    <div class="tab-bar">
+                        <button class="tab-btn active" data-tab="city">
+                            <span class="tab-icon">📍</span>City
+                        </button>
+                        <button class="tab-btn" data-tab="route">
+                            <span class="tab-icon">🗺️</span>Route
+                        </button>
+                        <button class="tab-btn" data-tab="disaster">
+                            <span class="tab-icon">⚠️</span>Disaster
+                        </button>
+                        <button class="tab-btn" data-tab="results">
+                            <span class="tab-icon">📊</span>Results
+                        </button>
+                    </div>
+
+                    <!-- City Tab -->
+                    <div class="tab-panel active" id="tab-city">
+                        <div class="section">
+                            <h3>📍 Select City</h3>
+                            <div class="control-group">
+                                <label>City</label>
+                                <select id="city-select">
+                                    <option value="">-- Select a city --</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-primary" id="load-network-btn" disabled>Load Road Network</button>
+                            <div id="network-status"></div>
+                        </div>
+                        <div class="section">
+                            <h3>ℹ️ Academic Integrity</h3>
+                            <div class="status info" style="margin-top:0;">
+                                ✓ All routing uses internal algorithms<br>
+                                ✓ Maps for visualization only<br>
+                                ✓ No external routing APIs
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Route Tab -->
+                    <div class="tab-panel" id="tab-route">
+                        <div class="section" id="route-section">
+                            <h3>🎯 Source & Destination</h3>
+                            <div class="control-group">
+                                <label>Source Node</label>
+                                <input type="number" id="source-input" placeholder="Click on map" min="0">
+                            </div>
+                            <div class="control-group">
+                                <label>Destination Node</label>
+                                <input type="number" id="target-input" placeholder="Click on map" min="0">
+                            </div>
+                            <div class="status info">💡 Click nodes on the map</div>
+                        </div>
+                        <div class="section" id="algorithm-section">
+                            <h3>🧠 Algorithm</h3>
+                            <div class="control-group">
+                                <label>Pathfinding Algorithm</label>
+                                <select id="algorithm-select">
+                                    <option value="dijkstra">Dijkstra — O(E log V)</option>
+                                    <option value="astar">A* (Haversine) — O(E log V)</option>
+                                    <option value="bidirectional">Bidirectional Dijkstra — O(b^(d/2))</option>
+                                    <option value="bellman_ford">Bellman-Ford — O(VE)</option>
+                                    <option value="yen_k_shortest">Yen's k-Shortest Paths</option>
+                                </select>
+                            </div>
+                            <div class="control-group" id="k-paths-control" style="display:none;">
+                                <label>k Paths <span class="range-value" id="k-paths-value">3</span></label>
+                                <input type="range" id="k-paths-slider" min="1" max="5" value="3" step="1">
+                            </div>
+                            <div class="toggle-row">
+                                <input type="checkbox" id="compare-toggle">
+                                <label for="compare-toggle">Compare All Algorithms</label>
+                            </div>
+                        </div>
+                        <div class="section" id="objectives-section">
+                            <h3>⚖️ Routing Objectives</h3>
+                            <div class="control-group">
+                                <label>Distance Priority (α) <span class="range-value"
+                                        id="alpha-value">1.0</span></label>
+                                <input type="range" id="alpha-slider" min="0.0" max="5.0" value="1.0" step="0.1"
+                                    style="accent-color:#6366f1;">
+                            </div>
+                            <div class="control-group">
+                                <label>Risk Avoidance (β) <span class="range-value" id="beta-value">1.0</span></label>
+                                <input type="range" id="beta-slider" min="0.0" max="5.0" value="1.0" step="0.1"
+                                    style="accent-color:#f59e0b;">
+                            </div>
+                            <div class="control-group">
+                                <label>Congestion Avoidance (γ) <span class="range-value"
+                                        id="gamma-value">1.0</span></label>
+                                <input type="range" id="gamma-slider" min="0.0" max="5.0" value="1.0" step="0.1"
+                                    style="accent-color:#10b981;">
+                            </div>
+                        </div>
+                        <div class="section" id="viz-section">
+                            <h3>🎬 Visualization</h3>
+                            <div class="toggle-row">
+                                <input type="checkbox" id="animate-toggle" checked>
+                                <label for="animate-toggle">Show Algorithm Animation</label>
+                            </div>
+                            <div class="speed-ctrl">
+                                <label>Speed:</label>
+                                <button class="speed-btn" data-speed="300">🐢</button>
+                                <button class="speed-btn active" data-speed="100">▶</button>
+                                <button class="speed-btn" data-speed="20">🐇</button>
+                                <button class="speed-btn" data-speed="0" id="step-btn">⏸ Step</button>
+                            </div>
+                        </div>
+                        <div class="section" id="compute-section">
+                            <button class="btn btn-animate" id="compute-btn" disabled>🚀 Compute &amp; Visualize
+                                Routes</button>
+                            <div class="btn-group-row" style="margin-top:8px;">
+                                <button class="btn btn-sm btn-demo" id="auto-demo-btn">🎬 Demo</button>
+                                <button class="btn btn-sm btn-demo" id="simulate-time-btn">⏱ R(t)</button>
+                                <button class="btn btn-sm btn-benchmark" id="benchmark-btn">📊 Bench</button>
+                            </div>
+                            <div class="btn-group-row">
+                                <button class="btn btn-sm btn-export" id="export-btn" style="display:none;">⬇
+                                    Export</button>
+                                <button class="btn btn-sm btn-secondary" id="save-btn" style="display:none;">💾
+                                    Save</button>
+                                <button class="btn btn-sm btn-secondary" id="reset-btn">↺ Reset</button>
+                            </div>
+                            <div class="keyboard-hint">C Compute · D Demo · B Bench · R Reset · H Heatmap · ? Help</div>
+                        </div>
+                    </div>
+
+                    <!-- Disaster Tab -->
+                    <div class="tab-panel" id="tab-disaster">
+                        <div class="section" id="disaster-section">
+                            <h3>⚠️ Disaster Scenario</h3>
+                            <div class="control-group">
+                                <label>Disaster Type</label>
+                                <select id="disaster-type">
+                                    <option value="none">None</option>
+                                    <option value="fire">🔥 Fire</option>
+                                    <option value="flood">🌊 Flood</option>
+                                    <option value="earthquake">🌍 Earthquake</option>
+                                </select>
+                            </div>
+                            <div id="disaster-controls" style="display:none;">
+                                <div class="control-group">
+                                    <label>Radius (meters) <span class="range-value"
+                                            id="radius-value">200</span></label>
+                                    <input type="range" id="radius-slider" min="50" max="500" value="200" step="10">
+                                </div>
+                                <div class="control-group">
+                                    <label>Severity <span class="range-value" id="severity-value">0.5</span></label>
+                                    <input type="range" id="severity-slider" min="0.1" max="1.0" value="0.5" step="0.1">
+                                </div>
+                                <div class="status warning">📍 Click map to set epicenter</div>
+                                <div class="toggle-row" style="margin-top:10px;">
+                                    <input type="checkbox" id="heatmap-toggle" checked>
+                                    <label for="heatmap-toggle">🌡 Show Risk Heatmap</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Results Tab -->
+                    <div class="tab-panel" id="tab-results">
+                        <div class="section" id="results-section" style="display:none;">
+                            <h3>📊 Results</h3>
+                            <div class="metrics" id="metrics"></div>
+                            <div id="algo-comparison-section" style="display:none;">
+                                <h3 style="margin-top:14px;">🔬 Algorithm Comparison</h3>
+                                <div id="algo-comparison"></div>
+                            </div>
+                            <button class="btn btn-export" id="export-btn-results"
+                                style="margin-top:12px;display:none;">⬇ Export JSON</button>
+                        </div>
+                        <div class="section">
+                            <h3>📜 Route History</h3>
+                            <div id="route-history-list">
+                                <div style="color:var(--text-muted);font-size:11px;">No routes computed yet.</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="complexity-counter">
-                <div class="time-value" id="complexity-time">0.00</div>
-                <div class="time-label">Computation Time (ms)</div>
+
+            <!-- Map -->
+            <div id="map">
+                <!-- Floating Map Legend -->
+                <div id="map-legend">
+                    <div class="leg-item">
+                        <div class="leg-dash"></div>Normal Route
+                    </div>
+                    <div class="leg-item">
+                        <div class="leg-line" style="background:#10b981;"></div>Disaster Route
+                    </div>
+                    <div class="leg-item">
+                        <div class="leg-line" style="background:#ef4444;"></div>Blocked
+                    </div>
+                    <div class="leg-item">
+                        <div class="leg-dot" style="background:#3b82f6;"></div>Node
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
+    <!-- Algo Panel (fixed bottom-right) -->
+    <div id="algo-panel">
+        <h3>⚙️ Algorithm Execution</h3>
+        <div class="algo-progress">
+            <div class="algo-progress-bar" id="algo-progress-bar" style="width:0%"></div>
+        </div>
+        <div id="algo-steps"></div>
+        <div class="algo-stats">
+            <div class="stat-box">
+                <div class="stat-value" id="nodes-visited">0</div>
+                <div class="stat-label">Visited</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="queue-size">0</div>
+                <div class="stat-label">Queue</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="complexity-time">0</div>
+                <div class="stat-label">ms</div>
+            </div>
+        </div>
+    </div>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
     <script>
@@ -875,8 +1671,9 @@
         function initMap() {
             state.map = L.map('map').setView([18.5204, 73.8567], 13);
 
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors',
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OpenStreetMap &copy; CartoDB',
+                subdomains: 'abcd',
                 maxZoom: 19
             }).addTo(state.map);
 
@@ -1715,10 +2512,243 @@
         }
 
         document.getElementById('compute-btn').addEventListener('click', computeRoutes);
-
         document.getElementById('auto-demo-btn').addEventListener('click', autoDemo);
         document.getElementById('simulate-time-btn').addEventListener('click', simulateTime);
         document.getElementById('benchmark-btn').addEventListener('click', runBenchmarks);
+
+        // ── Tab System ──────────────────────────────────────────────────────
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tab = btn.dataset.tab;
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById('tab-' + tab).classList.add('active');
+            });
+        });
+
+        // ── Sidebar Collapse ─────────────────────────────────────────────────
+        document.getElementById('sidebar-toggle-btn').addEventListener('click', () => {
+            const sb = document.getElementById('sidebar');
+            const btn = document.getElementById('sidebar-toggle-btn');
+            sb.classList.toggle('collapsed');
+            btn.textContent = sb.classList.contains('collapsed') ? '▶' : '◀';
+        });
+
+        // ── Toast System ─────────────────────────────────────────────────────
+        function showToast(type, title, msg, duration = 4000) {
+            const icons = { success: '✅', error: '❌', info: 'ℹ️', warning: '⚠️' };
+            const c = document.getElementById('toast-container');
+            const t = document.createElement('div');
+            t.className = 'toast ' + type;
+            t.innerHTML = `<div class="toast-icon">${icons[type]||'💬'}</div>
+                <div class="toast-body"><div class="toast-title">${title}</div><div class="toast-msg">${msg}</div></div>
+                <button class="toast-close" onclick="this.closest('.toast').remove()">✕</button>`;
+            c.appendChild(t);
+            setTimeout(() => { t.classList.add('hiding'); setTimeout(() => t.remove(), 300); }, duration);
+        }
+
+        // ── Live Stats Widget ─────────────────────────────────────────────────
+        function updateLiveStats(data) {
+            const w = document.getElementById('live-stats');
+            w.style.display = 'block';
+            document.getElementById('ls-normal').textContent =
+                data.normal_route ? data.normal_route.distance.toFixed(0) : '—';
+            document.getElementById('ls-disaster').textContent =
+                data.disaster_route ? data.disaster_route.distance.toFixed(0) : '—';
+            document.getElementById('ls-pct').textContent =
+                data.metrics ? data.metrics.percent_increase.toFixed(1) + '%' : '—';
+            document.getElementById('ls-time').textContent =
+                data.normal_route ? (data.normal_route.computation_time * 1000).toFixed(1) : '—';
+        }
+
+        // ── Route History ─────────────────────────────────────────────────────
+        const routeHistory = [];
+        function addToHistory(data) {
+            const entry = {
+                ts: new Date().toLocaleTimeString(),
+                algo: data.algorithm || 'dijkstra',
+                dist: data.normal_route ? data.normal_route.distance.toFixed(0) : '—',
+                disaster_dist: data.disaster_route ? data.disaster_route.distance.toFixed(0) : '—'
+            };
+            routeHistory.unshift(entry);
+            if (routeHistory.length > 8) routeHistory.pop();
+            const list = document.getElementById('route-history-list');
+            list.innerHTML = routeHistory.map((r, i) => `
+                <div style="padding:8px;border-bottom:1px solid var(--sidebar-border);font-size:11px;">
+                    <span style="color:var(--text-muted);">${r.ts}</span>
+                    <span style="color:white;font-weight:600;margin:0 6px;">${r.algo}</span>
+                    <span style="color:#6ee7b7;">${r.dist}m</span>
+                    ${r.disaster_dist !== '—' ? `<span style="color:#fca5a5;margin-left:6px;">→ ${r.disaster_dist}m</span>` : ''}
+                </div>`).join('');
+        }
+
+        // ── Speed Control ─────────────────────────────────────────────────────
+        let stepMode = false;
+        let stepResolve = null;
+
+        document.querySelectorAll('.speed-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const speed = parseInt(btn.dataset.speed);
+                if (btn.id === 'step-btn') {
+                    stepMode = !stepMode;
+                    btn.textContent = stepMode ? '▶ Next' : '⏸ Step';
+                    if (stepMode && stepResolve) { stepResolve(); stepResolve = null; }
+                    return;
+                }
+                document.querySelectorAll('.speed-btn:not(#step-btn)').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                state.animation.speed = speed;
+            });
+        });
+
+        function stepSleep(ms) {
+            if (stepMode) {
+                return new Promise(resolve => { stepResolve = resolve; });
+            }
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // ── Heatmap Toggle ─────────────────────────────────────────────────────
+        document.getElementById('heatmap-toggle').addEventListener('change', e => {
+            if (!e.target.checked && state.layers.heatmap) {
+                state.map.removeLayer(state.layers.heatmap);
+                state.layers.heatmap = null;
+            } else if (e.target.checked && state.selection.epicenter) {
+                updateHeatmap();
+            }
+        });
+
+        // ── Node Info Popup ────────────────────────────────────────────────────
+        function showNodePopup(node, mapPoint) {
+            const popup = document.getElementById('node-popup');
+            document.getElementById('np-title').textContent = `Node #${node.id}`;
+            const degree = state.network.edges.filter(e => e.u === node.id || e.v === node.id).length;
+            document.getElementById('np-body').innerHTML = `
+                <div class="np-row"><span class="np-label">Latitude</span><span class="np-val">${node.lat.toFixed(5)}</span></div>
+                <div class="np-row"><span class="np-label">Longitude</span><span class="np-val">${node.lon.toFixed(5)}</span></div>
+                <div class="np-row"><span class="np-label">Degree</span><span class="np-val">${degree} edges</span></div>
+                ${state.selection.epicenter ? (() => {
+                    const d = Math.sqrt(Math.pow(node.lat - state.selection.epicenter[0],2) + Math.pow(node.lon - state.selection.epicenter[1],2)) * 111000;
+                    const r = parseInt(document.getElementById('radius-slider').value);
+                    return `<div class="np-row"><span class="np-label">Dist to Disaster</span><span class="np-val" style="color:${d<r?'#fca5a5':'#6ee7b7'}">${d.toFixed(0)}m</span></div>`;
+                })() : ''}
+            `;
+            const x = Math.min(mapPoint.x + 10, window.innerWidth - 280);
+            const y = Math.min(mapPoint.y + 10, window.innerHeight - 200);
+            popup.style.left = x + 'px';
+            popup.style.top = y + 'px';
+            popup.style.display = 'block';
+        }
+
+        // ── Export Button ──────────────────────────────────────────────────────
+        function exportRoute() {
+            if (!state.lastRouteData) { showToast('warning', 'No Data', 'Compute a route first.'); return; }
+            const blob = new Blob([JSON.stringify(state.lastRouteData, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `evac_route_${Date.now()}.json`;
+            a.click();
+            showToast('success', 'Exported', 'Route data downloaded as JSON.');
+        }
+
+        ['export-btn', 'export-btn-results'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('click', exportRoute);
+        });
+
+        // ── Save Button ────────────────────────────────────────────────────────
+        document.getElementById('save-btn').addEventListener('click', () => {
+            const filename = 'visualization_' + Date.now() + '.json';
+            fetch('/api/save_visualization', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ filename, city: state.currentCity, selection: state.selection, timestamp: new Date().toISOString() })
+            }).then(() => showToast('success', 'Saved', `Saved as ${filename}`));
+        });
+
+        // ── Reset Button ───────────────────────────────────────────────────────
+        document.getElementById('reset-btn').addEventListener('click', resetSelections);
+
+        // ── Patch: use toast instead of alert ─────────────────────────────────
+        window._origAlert = window.alert;
+        window.alert = (msg) => showToast('info', 'Notice', msg);
+
+        // ── Patch: hook displayResults to update live stats & history & show export
+        const _origDisplayResults = displayResults;
+        displayResults = function(data) {
+            _origDisplayResults(data);
+            state.lastRouteData = data;
+            updateLiveStats(data);
+            addToHistory(data);
+            document.getElementById('export-btn').style.display = 'block';
+            document.getElementById('save-btn').style.display = 'block';
+            document.getElementById('export-btn-results').style.display = 'block';
+            showToast('success', 'Route Computed', `${data.algorithm || 'dijkstra'} — ${data.normal_route.distance.toFixed(0)}m`);
+            // Auto-switch to results tab
+            document.querySelector('[data-tab="results"]').click();
+        };
+
+        // ── Patch: loadNetwork to update topbar ────────────────────────────────
+        const _origLoadNetwork = loadNetwork;
+        loadNetwork = async function(cityKey) {
+            document.getElementById('tb-city').textContent = '⏳ Loading…';
+            await _origLoadNetwork(cityKey);
+            if (state.network) {
+                const city = Object.keys({}).length > 0 ? cityKey : cityKey;
+                document.getElementById('tb-city').textContent = '📍 ' + cityKey.replace(/_/g,' ');
+                document.getElementById('tb-nodes').textContent = `${state.network.stats?.num_nodes || '?'} nodes`;
+                document.getElementById('tb-edges').textContent = `${state.network.stats?.num_edges || '?'} edges`;
+                showToast('success', 'Network Loaded', `${state.network.stats?.num_nodes} nodes, ${state.network.stats?.num_edges} edges`);
+                // Auto-switch to route tab
+                document.querySelector('[data-tab="route"]').click();
+            }
+        };
+
+        // ── Patch: marker click to show popup ─────────────────────────────────
+        const _origDrawRoadNetwork = drawRoadNetwork;
+        drawRoadNetwork = function(edges) {
+            _origDrawRoadNetwork(edges);
+            // Attach popup to node markers
+            if (state.network && state.network.nodes) {
+                state.layers.markers.forEach((marker, idx) => {
+                    const node = state.network.nodes[idx];
+                    if (!node) return;
+                    marker.on('contextmenu', function(e) {
+                        L.DomEvent.stopPropagation(e);
+                        const mp = state.map.latLngToContainerPoint(e.latlng);
+                        showNodePopup(node, mp);
+                    });
+                });
+            }
+        };
+
+        // ── Keyboard shortcuts ─────────────────────────────────────────────────
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+            switch (e.key.toLowerCase()) {
+                case 'c': computeRoutes(); break;
+                case 'd': autoDemo(); break;
+                case 'b': runBenchmarks(); break;
+                case 'r': resetSelections(); break;
+                case 'h': {
+                    const hm = document.getElementById('heatmap-toggle');
+                    hm.checked = !hm.checked; hm.dispatchEvent(new Event('change')); break;
+                }
+                case 's': document.getElementById('sidebar-toggle-btn').click(); break;
+                case '1': document.querySelector('[data-tab="city"]').click(); break;
+                case '2': document.querySelector('[data-tab="route"]').click(); break;
+                case '3': document.querySelector('[data-tab="disaster"]').click(); break;
+                case '4': document.querySelector('[data-tab="results"]').click(); break;
+                case '?': showToast('info', 'Keyboard Shortcuts',
+                    'C=Compute D=Demo B=Bench R=Reset H=Heatmap S=Sidebar 1-4=Tabs'); break;
+            }
+        });
+
+        // Initialize
+        initMap();
+        loadCities();
+    </script>
+
 
         document.getElementById('save-btn').addEventListener('click', () => {
             const filename = prompt('Enter filename:', 'visualization_' + Date.now() + '.json');

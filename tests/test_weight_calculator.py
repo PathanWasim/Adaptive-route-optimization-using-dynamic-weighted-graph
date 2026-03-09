@@ -26,10 +26,10 @@ class TestWeightCalculator:
         risk_penalty = WeightCalculator.calculate_risk_penalty(edge, disaster, edge_midpoint)
         
         # Expected calculation:
-        # proximity_factor = max(0, 1 - 2.0/10.0) = 0.8
+        # proximity_factor = max(0, 1 - 2.0/10.0) = 0.8 -> sq = 0.64
         # disaster_multiplier = 2.0 (flood)
-        # risk_penalty = 0.5 * 2.0 * 0.8 * 0.8 = 0.64
-        expected = 0.5 * 2.0 * 0.8 * 0.8
+        # risk_penalty = severity * prox_sq * mult * 10.0 = 0.8 * 0.64 * 2.0 * 10.0 = 10.24
+        expected = 10.24
         assert abs(risk_penalty - expected) < 1e-10
     
     def test_calculate_risk_penalty_fire(self):
@@ -41,10 +41,10 @@ class TestWeightCalculator:
         risk_penalty = WeightCalculator.calculate_risk_penalty(edge, disaster, edge_midpoint)
         
         # Expected calculation:
-        # proximity_factor = max(0, 1 - 1.0/5.0) = 0.8
+        # proximity_factor = max(0, 1 - 1.0/5.0) = 0.8 -> sq = 0.64
         # disaster_multiplier = 3.0 (fire)
-        # risk_penalty = 0.3 * 3.0 * 0.8 * 0.6 = 0.432
-        expected = 0.3 * 3.0 * 0.8 * 0.6
+        # risk_penalty = 0.6 * 0.64 * 3.0 * 10.0 = 11.52
+        expected = 11.52
         assert abs(risk_penalty - expected) < 1e-10
     
     def test_calculate_risk_penalty_earthquake(self):
@@ -56,10 +56,10 @@ class TestWeightCalculator:
         risk_penalty = WeightCalculator.calculate_risk_penalty(edge, disaster, edge_midpoint)
         
         # Expected calculation:
-        # proximity_factor = max(0, 1 - 5.0/8.0) = 0.375
+        # proximity_factor = max(0, 1 - 5.0/8.0) = 0.375 -> sq = 0.140625
         # disaster_multiplier = 2.5 (earthquake)
-        # risk_penalty = 0.4 * 2.5 * 0.375 * 0.9 = 0.3375
-        expected = 0.4 * 2.5 * 0.375 * 0.9
+        # risk_penalty = 0.9 * 0.140625 * 2.5 * 10.0 = 3.1640625
+        expected = 3.1640625
         assert abs(risk_penalty - expected) < 1e-10
     
     def test_calculate_risk_penalty_outside_radius(self):
@@ -106,11 +106,11 @@ class TestWeightCalculator:
         
         # Expected calculation:
         # base_distance = 1.0
-        # proximity_factor = max(0, 1 - 5.0/10.0) = 0.5
-        # risk_penalty = 0.2 * 2.0 * 0.5 * 0.5 = 0.1
+        # proximity_factor = max(0, 1 - 5.0/10.0) = 0.5 -> sq = 0.25
+        # risk_penalty = severity(0.5) * prox_sq(0.25) * mult(2.0) * 10.0 = 2.5
         # congestion_penalty = 0.1 * 1.0 = 0.1
-        # total = 1.0 + 0.1 + 0.1 = 1.2
-        expected = 1.0 + (0.2 * 2.0 * 0.5 * 0.5) + 0.1
+        # total = 1.0 + 2.5 + 0.1 = 3.6
+        expected = 3.6
         assert abs(weight - expected) < 1e-10
     
     def test_calculate_dynamic_weight_missing_midpoint(self):
