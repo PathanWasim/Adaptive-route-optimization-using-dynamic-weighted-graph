@@ -1346,6 +1346,177 @@
             font-size: 10px;
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
+
+        /* ── Demo Feature 1: Expanding Disaster ─────────────────────────────── */
+        .disaster-sim-card {
+            background: rgba(239, 68, 68, 0.08);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin-top: 12px;
+        }
+        .disaster-sim-card .sim-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: #fca5a5;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .sim-controls {
+            display: flex;
+            gap: 5px;
+        }
+        .sim-btn {
+            flex: 1;
+            padding: 7px 4px;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 7px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: white;
+        }
+        .sim-btn.play-btn { background: linear-gradient(135deg,#10b981,#059669); border-color:#10b981; }
+        .sim-btn.pause-btn { background: linear-gradient(135deg,#f59e0b,#d97706); border-color:#f59e0b; }
+        .sim-btn.stop-btn { background: linear-gradient(135deg,#ef4444,#dc2626); border-color:#ef4444; }
+        .sim-btn:hover { transform: translateY(-1px); filter: brightness(1.15); }
+        .sim-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+        #disaster-progress-wrap {
+            height: 4px; background: rgba(255,255,255,0.08); border-radius: 2px; margin-top: 8px; overflow: hidden;
+        }
+        #disaster-progress-bar {
+            height: 100%; background: linear-gradient(90deg,#f59e0b,#ef4444); border-radius: 2px;
+            width: 0%; transition: width 0.4s;
+        }
+        #disaster-radius-display {
+            font-size: 10px; color: var(--text-muted); margin-top: 4px; text-align: center;
+        }
+
+        /* ── Demo Feature 2: Road Blocking ──────────────────────────────────── */
+        .roadblock-card {
+            background: rgba(245, 158, 11, 0.07);
+            border: 1px solid rgba(245, 158, 11, 0.25);
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin-top: 12px;
+        }
+        .roadblock-card .rb-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: #fcd34d;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        #roadblock-mode-btn {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid rgba(245, 158, 11, 0.4);
+            border-radius: 8px;
+            background: rgba(245, 158, 11, 0.12);
+            color: #fcd34d;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        #roadblock-mode-btn.active {
+            background: rgba(245, 158, 11, 0.3);
+            border-color: #f59e0b;
+            animation: pulse 1.5s infinite;
+        }
+        #roadblock-mode-btn:hover { filter: brightness(1.2); }
+        #roadblock-count {
+            font-size: 10px; color: var(--text-muted); margin-top: 5px; text-align: center;
+        }
+        .clear-blocks-btn {
+            width: 100%; margin-top: 6px; padding: 6px;
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 6px;
+            background: transparent; color: var(--text-muted);
+            font-size: 11px; cursor: pointer; transition: all 0.2s;
+        }
+        .clear-blocks-btn:hover { background: rgba(255,255,255,0.06); color: white; }
+        .roadblock-icon { filter: hue-rotate(0deg); }
+
+        /* ── Demo Feature 3: Vehicle Animation ──────────────────────────────── */
+        .vehicle-card {
+            background: rgba(99, 102, 241, 0.08);
+            border: 1px solid rgba(99, 102, 241, 0.25);
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin-top: 12px;
+        }
+        .vehicle-card .veh-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: #a5b4fc;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .vehicle-controls { display: flex; gap: 5px; }
+        .veh-btn {
+            flex: 1; padding: 7px 4px; border: 1px solid rgba(99,102,241,0.3);
+            border-radius: 7px; font-size: 11px; font-weight: 600;
+            cursor: pointer; transition: all 0.2s; color: white;
+        }
+        .veh-btn.go-btn { background: linear-gradient(135deg,#6366f1,#8b5cf6); }
+        .veh-btn.stop-btn { background: rgba(239,68,68,0.2); border-color:#ef4444; color:#fca5a5; }
+        .veh-btn:hover { transform: translateY(-1px); filter: brightness(1.15); }
+        .veh-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+        #vehicle-progress-bar-wrap {
+            height: 4px; background: rgba(255,255,255,0.08); border-radius: 2px; margin-top: 8px; overflow: hidden;
+        }
+        #vehicle-progress-bar {
+            height: 100%; background: linear-gradient(90deg,#6366f1,#06b6d4); border-radius: 2px;
+            width: 0%; transition: width 0.2s;
+        }
+        #vehicle-status {
+            font-size: 10px; color: var(--text-muted); margin-top: 4px; text-align: center;
+        }
+
+        /* ── Demo Feature 4: Search Wave ────────────────────────────────────── */
+        .wave-card {
+            background: rgba(6, 182, 212, 0.07);
+            border: 1px solid rgba(6, 182, 212, 0.25);
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin-top: 12px;
+        }
+        .wave-card .wave-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: #67e8f9;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .wave-algo-pair {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .wave-algo-label {
+            font-size: 10px;
+            text-align: center;
+            padding: 4px 6px;
+            border-radius: 6px;
+            font-weight: 600;
+        }
+        .wave-algo-label.dijkstra { background: rgba(59,130,246,0.2); color:#93c5fd; }
+        .wave-algo-label.astar { background: rgba(16,185,129,0.2); color:#6ee7b7; }
+        #wave-nodes-visited { font-size: 10px; color: var(--text-muted); text-align: center; margin-top: 4px; }
+
+        /* Leaflet custom cursor in roadblock mode */
+        .map-block-mode { cursor: crosshair !important; }
+        .leaflet-container.map-block-mode { cursor: crosshair !important; }
     </style>
 </head>
 
@@ -1427,6 +1598,9 @@
                         </button>
                         <button class="tab-btn" data-tab="results">
                             <span class="tab-icon">📊</span>Results
+                        </button>
+                        <button class="tab-btn" data-tab="demo">
+                            <span class="tab-icon">🎮</span>Demo
                         </button>
                     </div>
 
@@ -1568,6 +1742,38 @@
                                 <div class="toggle-row" style="margin-top:10px;">
                                     <input type="checkbox" id="heatmap-toggle" checked>
                                     <label for="heatmap-toggle">🌡 Show Risk Heatmap</label>
+                                </div>
+                                <!-- Dynamic disaster spread -->
+                                <div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.08);">
+                                    <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">
+                                        🌀 <strong>Dynamic Spread</strong> — simulates disaster growing/shrinking in real time
+                                    </div>
+                                    <div class="control-group" style="margin-bottom:6px;">
+                                        <label>Spread Rate (m/tick) <span class="range-value" id="spread-rate-value">30</span></label>
+                                        <input type="range" id="spread-rate-slider" min="10" max="100" value="30" step="10">
+                                    </div>
+                                    <div class="control-group" style="margin-bottom:6px;">
+                                        <label>Max Radius (m) <span class="range-value" id="max-radius-value">600</span></label>
+                                        <input type="range" id="max-radius-slider" min="100" max="1000" value="600" step="50">
+                                    </div>
+                                    <div style="display:flex;gap:6px;margin-top:6px;">
+                                        <button class="btn btn-primary" id="spread-grow-btn" style="flex:1;font-size:11px;padding:6px;">▶ Grow</button>
+                                        <button class="btn btn-secondary" id="spread-shrink-btn" style="flex:1;font-size:11px;padding:6px;">◀ Shrink</button>
+                                        <button class="btn" id="spread-stop-btn" style="flex:1;font-size:11px;padding:6px;background:rgba(239,68,68,0.2);color:#ef4444;border-color:#ef4444;">■ Stop</button>
+                                    </div>
+                                    <div id="spread-status" style="font-size:10px;color:var(--text-muted);margin-top:4px;"></div>
+                                </div>
+                                <!-- Congestion overlay -->
+                                <div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.08);">
+                                    <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">
+                                        🚦 <strong>Congestion Overlay</strong> — shows which roads carry the most traffic load
+                                        via random-sample edge betweenness
+                                    </div>
+                                    <div class="toggle-row">
+                                        <input type="checkbox" id="congestion-overlay-toggle">
+                                        <label for="congestion-overlay-toggle">Show Congestion Heatmap</label>
+                                    </div>
+                                    <div id="congestion-status" style="font-size:10px;color:var(--text-muted);margin-top:4px;"></div>
                                 </div>
                             </div>
                         </div>
@@ -1859,7 +2065,7 @@
                 state.map.removeLayer(state.layers.disasterCircle);
             }
 
-            const radius = parseInt(document.getElementById('radius-slider').value) * 1000;
+            const radius = parseInt(document.getElementById('radius-slider').value);  // slider is already in metres
             const type = document.getElementById('disaster-type').value;
             const colors = { flood: '#3b82f6', fire: '#ef4444', earthquake: '#f59e0b' };
 
@@ -1956,7 +2162,7 @@
             const disasterType = document.getElementById('disaster-type').value;
             const animated = document.getElementById('animate-toggle').checked;
             const algorithm = document.getElementById('algorithm-select').value;
-            const compareAlgorithms = document.getElementById('compare-toggle').checked;
+            const compareAlgorithms = true;  // always compare so the table is populated
 
             let kPaths = 3;
             const kPathsSlider = document.getElementById('k-paths-slider');
@@ -2190,47 +2396,88 @@
             const container = document.getElementById('algo-comparison');
             section.style.display = 'block';
 
-            const algoNames = { dijkstra: 'Dijkstra', astar: 'A*', bidirectional: 'Bidirectional D', bellman_ford: 'Bellman-Ford' };
-            const algoComplexity = { dijkstra: 'O(E log V)', astar: 'O(E log V)', bidirectional: 'O(b^(d/2))', bellman_ford: 'O(VE)' };
+            const algoNames = {
+                dijkstra:     'Dijkstra',
+                astar:        'A*',
+                bidirectional:'Bi-Dijkstra',
+                bellman_ford: 'Bellman-Ford',
+                yen_k:        'Yen k-SP'
+            };
+            const algoComplexity = {
+                dijkstra:     'O(E log V)',
+                astar:        'O(E log V)*',
+                bidirectional:'O(b^(d/2))',
+                bellman_ford: 'O(V·E)',
+                yen_k:        'O(k·V·E log V)'
+            };
+            const algoDesc = {
+                dijkstra:     'Explores all directions equally',
+                astar:        'Guided by straight-line heuristic → fewer nodes',
+                bidirectional:'Two searches meeting in the middle → fastest',
+                bellman_ford: 'Relaxes every edge V times → slowest but handles negatives',
+                yen_k:        'Finds k alternative loopless paths'
+            };
 
-            // Find best values for highlighting
-            const times = Object.values(comparison).map(c => c.time_ms);
-            const nodes = Object.values(comparison).map(c => c.nodes_visited);
-            const bestTime = Math.min(...times);
-            const bestNodes = Math.min(...nodes.filter(n => n > 0));
+            const times   = Object.values(comparison).map(c => c.time_ms);
+            const nodes   = Object.values(comparison).map(c => c.nodes_visited);
+            const bestTime  = Math.min(...times);
             const worstTime = Math.max(...times);
+            const bestNodes = Math.min(...nodes.filter(n => n > 0));
+            const maxTime   = worstTime || 1;
+
+            // Find overall winner (fewest nodes visited wins for search efficiency)
+            const winnerKey = Object.entries(comparison).reduce((a, b) => a[1].nodes_visited < b[1].nodes_visited ? a : b)[0];
 
             let html = `
+                <div style="margin-bottom:10px;padding:8px 12px;background:rgba(16,185,129,0.12);
+                     border:1px solid #10b981;border-radius:8px;font-size:12px;color:#6ee7b7">
+                    🏆 <strong>Best for this route:</strong> ${algoNames[winnerKey] || winnerKey}
+                    — visited fewest nodes (${comparison[winnerKey].nodes_visited}),
+                    proof of heuristic/bidirectional pruning.
+                </div>
                 <table class="algo-comparison-table">
-                    <thead>
-                        <tr>
-                            <th>Algorithm</th>
-                            <th>Time (ms)</th>
-                            <th>Nodes Visited</th>
-                            <th>Complexity</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
+                    <thead><tr>
+                        <th>Algorithm</th><th>Time (ms)</th><th>Speed</th>
+                        <th>Nodes Visited</th><th>Complexity</th>
+                    </tr></thead>
+                    <tbody>`;
 
-            for (const [key, data] of Object.entries(comparison)) {
-                const timeBadge = data.time_ms === bestTime ? '<span class="algo-badge best">Fastest</span>' :
-                    data.time_ms === worstTime ? '<span class="algo-badge worst">Slowest</span>' : '';
-                const nodesBadge = data.nodes_visited === bestNodes ? '<span class="algo-badge best">Fewest</span>' : '';
+            for (const [key, d] of Object.entries(comparison)) {
+                const isBestTime  = d.time_ms === bestTime;
+                const isWorstTime = d.time_ms === worstTime && times.length > 1;
+                const isBestNodes = d.nodes_visited === bestNodes;
+                const pct = Math.max(4, Math.round((d.time_ms / maxTime) * 100));
+
+                const timeBadge  = isBestTime  ? '<span class="algo-badge best">Fastest</span>' :
+                                   isWorstTime ? '<span class="algo-badge worst">Slowest</span>' : '';
+                const nodesBadge = isBestNodes ? '<span class="algo-badge best">Fewest</span>' : '';
 
                 html += `
-                    <tr>
-                        <td><strong>${algoNames[key]}</strong></td>
-                        <td>${data.time_ms.toFixed(2)} ${timeBadge}</td>
-                        <td>${data.nodes_visited} ${nodesBadge}</td>
-                        <td>${algoComplexity[key]}</td>
-                    </tr>
-                `;
+                    <tr style="${key === winnerKey ? 'background:rgba(16,185,129,0.08)' : ''}">
+                        <td>
+                            <strong>${algoNames[key] || key}</strong><br>
+                            <span style="font-size:10px;color:var(--text-muted)">${algoDesc[key] || ''}</span>
+                        </td>
+                        <td>${d.time_ms.toFixed(2)} ms ${timeBadge}</td>
+                        <td>
+                            <div style="background:rgba(255,255,255,0.05);border-radius:4px;height:8px;width:80px">
+                                <div style="height:8px;border-radius:4px;width:${pct}%;
+                                     background:${isBestTime ? '#10b981' : isWorstTime ? '#ef4444' : '#6366f1'}"></div>
+                            </div>
+                        </td>
+                        <td>${d.nodes_visited} ${nodesBadge}</td>
+                        <td style="font-size:10px;font-family:monospace">${algoComplexity[key] || ''}</td>
+                    </tr>`;
             }
 
-            html += '</tbody></table>';
+            html += `</tbody></table>
+                <div style="margin-top:8px;font-size:10px;color:var(--text-muted)">
+                    * A* time ≈ Dijkstra in Python due to Haversine overhead, but visits far fewer nodes.
+                    Bidirectional is fastest on long routes. Bellman-Ford is O(V·E) — always slowest.
+                </div>`;
             container.innerHTML = html;
         }
+
 
         // Auto-demo function
         async function autoDemo() {
@@ -2467,7 +2714,7 @@
             document.getElementById('radius-value').textContent = e.target.value;
             if (state.selection.epicenter) {
                 // Update circle outline immediately without triggering expensive API requests too fast
-                const radius = parseInt(e.target.value) * 1000;
+                const radius = parseInt(e.target.value);  // metres, no ×1000 needed
                 if (state.layers.disasterCircle) {
                     state.layers.disasterCircle.setRadius(radius);
                 }

@@ -48,17 +48,24 @@ class DisasterEvent:
     
     def distance_to_point(self, point: Tuple[float, float]) -> float:
         """
-        Calculate distance from disaster epicenter to a given point.
-        
+        Calculate Haversine distance (metres) from disaster epicenter to a given point.
+
         Args:
-            point: Coordinates (x, y) to calculate distance to
-            
+            point: (latitude, longitude) to calculate distance to
+
         Returns:
-            Euclidean distance from epicenter to point
+            Distance in metres using the Haversine formula
         """
-        x1, y1 = self.epicenter
-        x2, y2 = point
-        return ((x2 - x1) ** 2 + (y2 - y1) ** 2) ** 0.5
+        import math
+        lat1, lon1 = self.epicenter
+        lat2, lon2 = point
+        R = 6_371_000  # Earth radius in metres
+        phi1, phi2 = math.radians(lat1), math.radians(lat2)
+        dphi = math.radians(lat2 - lat1)
+        dlam = math.radians(lon2 - lon1)
+        a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlam / 2) ** 2
+        return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
     
     def get_disaster_multiplier(self) -> float:
         """

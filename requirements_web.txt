@@ -1,6 +1,8 @@
 # Web Application Requirements
 Flask==3.0.0
 flask-cors==4.0.0
+flask-socketio==5.3.6
+eventlet==0.33.3
 
 # Already installed from main project
 # osmnx

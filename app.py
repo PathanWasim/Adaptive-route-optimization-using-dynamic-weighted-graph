@@ -13,8 +13,11 @@ ACADEMIC INTEGRITY:
 """
 
 from flask import Flask, render_template, request, jsonify
+from flask_socketio import SocketIO, emit
+from flask_cors import CORS
 import json
 import time
+import threading
 from disaster_evacuation.osm.osm_extractor import OSMExtractor
 from disaster_evacuation.osm.graph_converter import GraphConverter
 from disaster_evacuation.models.disaster_modeler import DisasterModeler
@@ -25,6 +28,13 @@ from disaster_evacuation.analysis.benchmarks import BenchmarkRunner
 from disaster_evacuation.visualization.heatmap import HeatmapGenerator
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = 'evac-route-secret'
+CORS(app, resources={r"/api/*": {"origins": "*"}})
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+
+# Global disaster simulation state
+_sim_running = False
+_sim_thread = None
 
 # Global cache for loaded networks
 network_cache = {}
@@ -530,6 +540,107 @@ def compute_route():
     return jsonify(response)
 
 
+
+@app.route('/api/disaster_spread', methods=['POST'])
+def disaster_spread():
+    """Tick-based dynamic disaster zone growth/shrinkage."""
+    from disaster_evacuation.models import DisasterModel, DisasterEvent, DisasterType
+    import datetime
+    data = request.json
+    city_key    = data.get('city_key')
+    current_r   = float(data.get('current_radius', 200))
+    spread_rate = float(data.get('spread_rate', 30))
+    max_radius  = float(data.get('max_radius', 800))
+    min_radius  = float(data.get('min_radius', 50))
+    direction   = data.get('direction', 'grow')
+    dcfg        = data.get('disaster', {})
+    if not city_key or city_key not in CITIES:
+        return jsonify({'error': 'Invalid city key'}), 400
+    network = network_cache.get(city_key) or load_network(city_key)
+    if not network:
+        return jsonify({'error': 'Network not loaded'}), 500
+    graph_manager = network['graph_manager']
+    coord_mapping = network['coord_mapping']
+    new_r = (min(current_r + spread_rate, max_radius) if direction == 'grow'
+             else max(current_r - spread_rate, min_radius))
+    dtype_map = {'fire': DisasterType.FIRE, 'flood': DisasterType.FLOOD,
+                 'earthquake': DisasterType.EARTHQUAKE}
+    event = DisasterEvent(
+        disaster_type=dtype_map.get(dcfg.get('type', 'fire'), DisasterType.FIRE),
+        epicenter=tuple(dcfg.get('epicenter', [0, 0])),
+        severity=float(dcfg.get('severity', 0.7)),
+        max_effect_radius=new_r,
+        start_time=datetime.datetime.now()
+    )
+    model = DisasterModel()
+    model.apply_disaster_effects(graph_manager, event)
+    blocked = []
+    for edge in graph_manager.get_all_edges():
+        if edge.is_blocked:
+            si, ti = int(edge.source), int(edge.target)
+            if si in coord_mapping and ti in coord_mapping:
+                la1, lo1 = coord_mapping[si]
+                la2, lo2 = coord_mapping[ti]
+                blocked.append([[la1, lo1], [la2, lo2]])
+    model.clear_all_disaster_effects(graph_manager)
+    return jsonify({'new_radius': new_r, 'blocked_edges': blocked,
+                    'blocked_count': len(blocked),
+                    'at_max': new_r >= max_radius, 'at_min': new_r <= min_radius})
+
+
+@app.route('/api/congestion_info', methods=['POST'])
+def congestion_info():
+    """
+    Approximate edge betweenness centrality via random-sample Dijkstra.
+
+    HOW CONGESTION IS CALCULATED:
+      1. Sample K random source nodes (default K=20).
+      2. Run Dijkstra from each source to every other node.
+      3. Tally how many times each edge appears on a shortest path.
+         -> An edge used by many paths = high betweenness = high congestion load.
+      4. Normalize frequencies to [0, 1].
+      5. Return per-edge scores; the frontend colours edges green→yellow→red.
+
+    These scores are also used as the base_congestion attribute when computing
+    the multi-objective weight W = alpha*dist + beta*risk + gamma*congestion.
+    """
+    import random
+    from disaster_evacuation.routing.dijkstra import PathfinderEngine
+    data = request.json
+    city_key = data.get('city_key')
+    if not city_key or city_key not in CITIES:
+        return jsonify({'error': 'Invalid city key'}), 400
+    network = network_cache.get(city_key) or load_network(city_key)
+    if not network:
+        return jsonify({'error': 'Network not loaded'}), 500
+    graph_manager = network['graph_manager']
+    coord_mapping = network['coord_mapping']
+    n = len(coord_mapping)
+    K = min(20, n)
+    srcs = random.sample(range(n), K)
+    freq = {}
+    pf = PathfinderEngine()
+    for src in srcs:
+        for tgt in range(n):
+            if src == tgt:
+                continue
+            res = pf.find_shortest_path(graph_manager, str(src), str(tgt))
+            if res.found and len(res.path) > 1:
+                for i in range(len(res.path) - 1):
+                    key = (res.path[i], res.path[i+1])
+                    freq[key] = freq.get(key, 0) + 1
+    mx = max(freq.values(), default=1)
+    edges_out = []
+    for (s, t), cnt in freq.items():
+        si, ti = int(s), int(t)
+        if si in coord_mapping and ti in coord_mapping:
+            la1, lo1 = coord_mapping[si]
+            la2, lo2 = coord_mapping[ti]
+            edges_out.append({'coords': [[la1,lo1],[la2,lo2]],
+                               'score': round(cnt/mx, 3), 'frequency': cnt})
+    return jsonify({'congestion_edges': edges_out, 'sample_sources': K})
+
+
 @app.route('/api/heatmap', methods=['POST'])
 def get_heatmap():
     """Generate continuous risk heatmap data based on disaster event."""
@@ -540,9 +651,15 @@ def get_heatmap():
     if not city_key or not disaster_data:
         return jsonify({"error": "Missing city_key or disaster data"}), 400
         
-    graph_manager = app.graphs.get(city_key)
-    if not graph_manager:
+    network = network_cache.get(city_key)
+    if not network:
+        # Try to load it
+        network = load_network(city_key)
+    if not network:
         return jsonify({"error": f"Network not loaded for {city_key}"}), 400
+    graph_manager = network["graph_manager"]
+    coord_mapping  = network["coord_mapping"]
+
         
     try:
         disaster_type = DisasterType(disaster_data['type'])
@@ -611,23 +728,171 @@ def auto_demo():
     })
 
 
+@app.route('/api/block_road', methods=['POST'])
+def block_road():
+    """
+    Temporarily block a specific road segment (edge) in the graph.
+    Used for the interactive 'click-to-close-road' demo feature.
+    """
+    from disaster_evacuation.models import DisasterModel, DisasterEvent, DisasterType
+    import datetime
+
+    data = request.json
+    city_key = data.get('city_key')
+    source_node = data.get('source_node')
+    target_node = data.get('target_node')
+    blocked_list = data.get('blocked_roads', [])  # List of {source, target} to block persistently
+
+    if not city_key or city_key not in CITIES:
+        return jsonify({'error': 'Invalid city key'}), 400
+
+    network = network_cache.get(city_key) or load_network(city_key)
+    if not network:
+        return jsonify({'error': 'Network not loaded'}), 500
+
+    graph_manager = network['graph_manager']
+    coord_mapping = network['coord_mapping']
+
+    # Block all roads in the persistent blocked list
+    blocked_edge_coords = []
+    for road in blocked_list:
+        s, t = str(road['source']), str(road['target'])
+        # Block both directions
+        for edge in graph_manager.get_neighbors(s):
+            if edge.target == t:
+                edge.is_blocked = True
+                edge.current_weight = float('inf')
+        for edge in graph_manager.get_neighbors(t):
+            if edge.target == s:
+                edge.is_blocked = True
+                edge.current_weight = float('inf')
+
+        si, ti = int(road['source']), int(road['target'])
+        if si in coord_mapping and ti in coord_mapping:
+            la1, lo1 = coord_mapping[si]
+            la2, lo2 = coord_mapping[ti]
+            blocked_edge_coords.append([[la1, lo1], [la2, lo2]])
+
+    # Re-compute route if source/target given
+    route_data = None
+    if data.get('source_id') is not None and data.get('target_id') is not None:
+        source_id = data['source_id']
+        target_id = data['target_id']
+        algorithm = data.get('algorithm', 'dijkstra')
+        pathfinder = _get_pathfinder(algorithm)
+        result = pathfinder.find_shortest_path(graph_manager, str(source_id), str(target_id))
+        if result.found:
+            route_data = {
+                'path': _path_to_coords(result.path, coord_mapping),
+                'distance': result.total_cost,
+                'nodes_visited': result.nodes_visited,
+            }
+
+    # Unblock all roads (reset for next call — blocking is stateless per request)
+    for road in blocked_list:
+        s, t = str(road['source']), str(road['target'])
+        for edge in graph_manager.get_neighbors(s):
+            if edge.target == t:
+                edge.is_blocked = False
+                edge.current_weight = edge.base_distance
+        for edge in graph_manager.get_neighbors(t):
+            if edge.target == s:
+                edge.is_blocked = False
+                edge.current_weight = edge.base_distance
+
+    return jsonify({
+        'blocked_edge_coords': blocked_edge_coords,
+        'route': route_data
+    })
+
+
+# ─── WebSocket: Disaster Simulation ──────────────────────────────────────────
+
+@socketio.on('start_disaster_sim')
+def handle_start_sim(data):
+    """Start server-side disaster expansion loop, emitting ticks every 1.5s."""
+    global _sim_running, _sim_thread
+    _sim_running = True
+
+    city_key    = data.get('city_key')
+    disaster    = data.get('disaster', {})
+    spread_rate = float(data.get('spread_rate', 30))
+    max_radius  = float(data.get('max_radius', 800))
+    current_r   = float(data.get('start_radius', 100))
+    interval    = float(data.get('interval', 1.5))
+
+    def sim_loop():
+        global _sim_running
+        r = current_r
+        while _sim_running and r < max_radius:
+            r = min(r + spread_rate, max_radius)
+            pct = round((r / max_radius) * 100, 1)
+
+            # Compute blocked edges at this radius
+            blocked = []
+            network = network_cache.get(city_key)
+            if network:
+                from disaster_evacuation.models import DisasterModel, DisasterEvent, DisasterType
+                import datetime
+                dtype_map = {'fire': DisasterType.FIRE, 'flood': DisasterType.FLOOD,
+                             'earthquake': DisasterType.EARTHQUAKE}
+                gm = network['graph_manager']
+                cm = network['coord_mapping']
+                event = DisasterEvent(
+                    disaster_type=dtype_map.get(disaster.get('type', 'fire'), DisasterType.FIRE),
+                    epicenter=tuple(disaster.get('epicenter', [0, 0])),
+                    severity=float(disaster.get('severity', 0.7)),
+                    max_effect_radius=r,
+                    start_time=datetime.datetime.now()
+                )
+                model = DisasterModel()
+                model.apply_disaster_effects(gm, event)
+                for edge in gm.get_all_edges():
+                    if edge.is_blocked:
+                        si, ti = int(edge.source), int(edge.target)
+                        if si in cm and ti in cm:
+                            la1, lo1 = cm[si]
+                            la2, lo2 = cm[ti]
+                            blocked.append([[la1, lo1], [la2, lo2]])
+                model.clear_all_disaster_effects(gm)
+
+            socketio.emit('disaster_tick', {
+                'radius': r,
+                'percent': pct,
+                'at_max': r >= max_radius,
+                'blocked_edges': blocked
+            })
+
+            if r >= max_radius:
+                _sim_running = False
+                break
+            time.sleep(interval)
+
+    _sim_thread = threading.Thread(target=sim_loop, daemon=True)
+    _sim_thread.start()
+    emit('sim_started', {'message': 'Simulation started'})
+
+
+@socketio.on('stop_disaster_sim')
+def handle_stop_sim():
+    """Stop the server-side disaster simulation loop."""
+    global _sim_running
+    _sim_running = False
+    emit('sim_stopped', {'message': 'Simulation stopped'})
+
+
+# ─── Main ─────────────────────────────────────────────────────────────────────
+
 if __name__ == '__main__':
     import os
     os.makedirs('saved_visualizations', exist_ok=True)
-    
+
     print("=" * 70)
-    print("Disaster Evacuation Routing System - Interactive Web Interface")
+    print("Disaster Evacuation Routing System - React Frontend + SocketIO")
     print("=" * 70)
-    print("\nStarting server...")
-    print("Open your browser and navigate to: http://localhost:5000")
-    print("\nACADEMIC INTEGRITY:")
-    print("  ✓ All routing uses internal Dijkstra/A*/Bellman-Ford implementations")
-    print("  ✓ Maps used ONLY for visualization")
-    print("  ✓ No external routing APIs")
-    print("\nALGORITHMS AVAILABLE:")
-    print("  → Dijkstra's Algorithm — O(E log V)")
-    print("  → A* with Haversine Heuristic — O(E log V), fewer nodes")
-    print("  → Bellman-Ford — O(VE), comparative baseline")
+    print("\nStarting server on http://localhost:5000")
+    print("Frontend (React/Vite) runs on http://localhost:5173")
+    print("\nALGORITHMS: Dijkstra · A* · Bidirectional · Bellman-Ford · Yen k-SP")
     print("=" * 70)
-    
-    app.run(debug=True, port=5000)
+
+    socketio.run(app, debug=True, port=5000, allow_unsafe_werkzeug=True)

@@ -87,16 +87,20 @@ class DisasterModel:
             # Reset blocked status to re-evaluate
             edge.is_blocked = False
             
-            if active_disaster and active_disaster.is_point_affected(edge_midpoint):
-                # Calculate new weight with disaster effects
-                new_weight = self._calculate_disaster_affected_weight(
-                    edge, active_disaster, edge_midpoint, alpha, beta, gamma
+            # Block edge if midpoint OR either endpoint is inside the disaster radius
+            # (midpoint-only misses long road segments that start/end inside the zone)
+            in_zone = False
+            if active_disaster:
+                in_zone = (
+                    active_disaster.is_point_affected(edge_midpoint) or
+                    active_disaster.is_point_affected(source_vertex.coordinates) or
+                    active_disaster.is_point_affected(target_vertex.coordinates)
                 )
-                
-                # Check if edge should be blocked
-                if WeightCalculator.is_edge_blocked(edge, active_disaster, edge_midpoint):
-                    edge.is_blocked = True
-                    new_weight = float('inf')  # Infinite weight for blocked roads
+
+            if in_zone:
+                edge.is_blocked = True
+                new_weight = float('inf')  # Entire disaster zone is impassable
+
             else:
                 # No disaster effect on this edge
                 new_weight = WeightCalculator.calculate_dynamic_weight(
